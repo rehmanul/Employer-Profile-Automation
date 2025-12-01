@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Search, CheckCircle, XCircle, Clock, RefreshCw, Download, ExternalLink, TrendingUp, Zap, Database, Globe, Award, BarChart3, Activity, Sparkles } from 'lucide-react';
+import { Search, CheckCircle, XCircle, Clock, RefreshCw, Download, ExternalLink, TrendingUp, Zap, Database, Globe, Award, BarChart3, Activity, Sparkles, FileText } from 'lucide-react';
 
 interface Job {
   id: string;
@@ -122,6 +122,16 @@ export default function EmployerProfileDashboard() {
           website_url: websiteUrl,
           website_host: new URL(websiteUrl).hostname,
           run_folder_hint: `AUTO_EMP_${new URL(websiteUrl).hostname}_${new Date().toISOString()}`,
+          assets: {
+            capture_images: true,
+            capture_logo: true,
+            max_images: 5
+          },
+          outputs: {
+            create_google_doc: true,
+            include_benefits: true,
+            include_matched_benefits: true
+          },
           timestamp: new Date().toISOString()
         })
       });
@@ -238,6 +248,10 @@ export default function EmployerProfileDashboard() {
     })();
     const companyName = job.data?.results?.company_name || job.data?.company_profile?.name;
     return companyName || host;
+  };
+
+  const getDocUrl = (job: Job) => {
+    return job.data?.storage?.doc_url || job.data?.results?.doc_url || job.data?.doc_url;
   };
 
   return (
@@ -473,15 +487,30 @@ export default function EmployerProfileDashboard() {
 
                       {job.status === 'completed' && job.data && job.data.storage && (
                         <div className="mt-4 pt-4 border-t border-slate-300">
-                          <a
-                            href={job.data.storage.drive_folder_url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white rounded-xl transition-all duration-300 text-sm font-medium shadow-lg hover:shadow-xl hover:scale-105"
-                          >
-                            <Download className="w-4 h-4" />
-                            View Results in Drive
-                          </a>
+                          <div className="flex flex-wrap gap-3">
+                            {job.data.storage.drive_folder_url && (
+                              <a
+                                href={job.data.storage.drive_folder_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white rounded-xl transition-all duration-300 text-sm font-medium shadow-lg hover:shadow-xl hover:scale-105"
+                              >
+                                <Download className="w-4 h-4" />
+                                View Results in Drive
+                              </a>
+                            )}
+                            {getDocUrl(job) && (
+                              <a
+                                href={getDocUrl(job)}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-2 px-5 py-2.5 bg-white/80 hover:bg-white text-emerald-700 border border-emerald-200 rounded-xl transition-all duration-300 text-sm font-semibold shadow-md"
+                              >
+                                <FileText className="w-4 h-4" />
+                                Open Google Doc
+                              </a>
+                            )}
+                          </div>
                         </div>
                       )}
 
