@@ -5,7 +5,6 @@ import { Search, CheckCircle, XCircle, Clock, RefreshCw, Download, ExternalLink,
 
 interface Job {
   id: string;
-  employerId: string;
   websiteUrl: string;
   status: 'processing' | 'completed' | 'failed';
   startTime: string;
@@ -25,7 +24,6 @@ interface Stats {
 export default function EmployerProfileDashboard() {
   const [webhookUrl, setWebhookUrl] = useState('https://hook.eu2.make.com/wox5dmw6fbgunazmmya2hahi369rolbb');
   const [websiteUrl, setWebsiteUrl] = useState('');
-  const [employerId, setEmployerId] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [jobs, setJobs] = useState<Job[]>([]);
   const [stats, setStats] = useState<Stats>({ total: 0, completed: 0, failed: 0, processing: 0, avgTime: 0 });
@@ -72,7 +70,7 @@ export default function EmployerProfileDashboard() {
   };
 
   const validateUrl = (url: string) => {
-    try {
+  try {
       new URL(url);
       return true;
     } catch {
@@ -81,8 +79,8 @@ export default function EmployerProfileDashboard() {
   };
 
   const submitJob = async () => {
-    if (!websiteUrl || !employerId) {
-      alert('Please fill in all required fields');
+    if (!websiteUrl) {
+      alert('Please provide a website URL');
       return;
     }
 
@@ -96,7 +94,6 @@ export default function EmployerProfileDashboard() {
 
     const newJob: Job = {
       id: jobId,
-      employerId,
       websiteUrl,
       status: 'processing',
       startTime: new Date().toISOString(),
@@ -122,8 +119,9 @@ export default function EmployerProfileDashboard() {
         },
         body: JSON.stringify({
           job_id: jobId,
-          employer_id: employerId,
           website_url: websiteUrl,
+          website_host: new URL(websiteUrl).hostname,
+          run_folder_hint: `AUTO_EMP_${new URL(websiteUrl).hostname}_${new Date().toISOString()}`,
           timestamp: new Date().toISOString()
         })
       });
@@ -143,7 +141,6 @@ export default function EmployerProfileDashboard() {
             updateJobStatus(jobId, 'completed', {
               success: true,
               job_id: jobId,
-              employer_id: employerId,
               status: 'completed',
               results: {
                 company_name: 'Processing Complete',
@@ -156,7 +153,6 @@ export default function EmployerProfileDashboard() {
           updateJobStatus(jobId, 'completed', {
             success: true,
             job_id: jobId,
-            employer_id: employerId,
             status: 'completed',
             results: {
               company_name: 'Processing Complete',
@@ -176,7 +172,6 @@ export default function EmployerProfileDashboard() {
     } finally {
       setIsProcessing(false);
       setWebsiteUrl('');
-      setEmployerId('');
     }
   };
 
@@ -231,6 +226,18 @@ export default function EmployerProfileDashboard() {
       setJobs([]);
       localStorage.removeItem('employer_jobs');
     }
+  };
+
+  const getJobLabel = (job: Job) => {
+    const host = (() => {
+      try {
+        return new URL(job.websiteUrl).hostname;
+      } catch {
+        return job.websiteUrl;
+      }
+    })();
+    const companyName = job.data?.results?.company_name || job.data?.company_profile?.name;
+    return companyName || host;
   };
 
   return (
@@ -338,21 +345,7 @@ export default function EmployerProfileDashboard() {
           </div>
 
           <div className="grid md:grid-cols-2 gap-4 mb-4">
-            <div>
-              <label className="block text-sm font-medium text-slate-300 mb-2">
-                Employer ID *
-              </label>
-              <input
-                type="text"
-                value={employerId}
-                onChange={(e) => setEmployerId(e.target.value)}
-                className="w-full px-4 py-3 bg-white/5 border border-white/20 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-white placeholder-slate-400 transition-all duration-300"
-                placeholder="e.g., EMP_12345"
-                disabled={isProcessing}
-              />
-            </div>
-
-            <div>
+            <div className="md:col-span-2">
               <label className="block text-sm font-medium text-slate-300 mb-2">
                 Company Website URL *
               </label>
@@ -430,7 +423,7 @@ export default function EmployerProfileDashboard() {
                         {getStatusIcon(job.status)}
                         <div className="flex-1 min-w-0">
                           <h3 className="font-semibold text-slate-900 text-lg truncate">
-                            {job.employerId}
+                            {getJobLabel(job)}
                           </h3>
                           <a
                             href={job.websiteUrl}
