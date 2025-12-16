@@ -659,6 +659,41 @@ export default function EmployerProfilePro() {
               ))}
             </div>
 
+            {/* Grid Toolbar */}
+            <div className={`${t.card} border rounded-xl p-3 backdrop-blur`}>
+              <div className="flex flex-wrap items-center gap-3">
+                {/* Search */}
+                <div className="relative flex-1 min-w-[200px]">
+                  <Search className={`absolute left-3 top-2.5 w-4 h-4 ${t.muted}`} />
+                  <input
+                    type="text"
+                    placeholder="Search by URL, name, domain..."
+                    value={searchTerm}
+                    onChange={e => setSearchTerm(e.target.value)}
+                    className={`w-full pl-10 pr-4 py-2 ${t.input} rounded-lg text-sm border focus:ring-2 focus:ring-violet-500/50`}
+                  />
+                </div>
+
+                {/* Quick Status Filter */}
+                <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} className={`px-3 py-2 ${t.input} border rounded-lg text-sm`}>
+                  <option value="all">All Status</option>
+                  <option value="completed">Completed</option>
+                  <option value="processing">Processing</option>
+                  <option value="failed">Failed</option>
+                </select>
+
+                {/* Actions */}
+                <div className="flex items-center gap-2 ml-auto">
+                  <button onClick={() => exportProfiles(filteredProfiles, 'csv')} className={`px-3 py-2 ${t.hover} ${t.muted} rounded-lg text-sm flex items-center gap-1`}>
+                    <Download className="w-4 h-4" />CSV
+                  </button>
+                  <button onClick={() => { const s = localStorage.getItem('employer_profiles_v3'); if (s) setProfiles(JSON.parse(s)); showToast('info', 'Refreshed'); }} className={`p-2 ${t.muted} ${t.hover} rounded-lg`}>
+                    <RefreshCw className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            </div>
+
             {/* Grid Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
               {filteredProfiles.map(profile => (
