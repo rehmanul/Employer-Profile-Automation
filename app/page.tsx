@@ -69,7 +69,7 @@ const ToastNotification = ({ toast, onClose }: { toast: Toast; onClose: () => vo
 
 export default function EmployerProfileDashboard() {
   // State
-  const [webhookUrl, setWebhookUrl] = useState('https://hook.eu2.make.com/vdm78qerql1t3sdhi5h9f8vfu9nfawk1');
+  const [webhookUrl, setWebhookUrl] = useState('https://hook.eu2.make.com/8xsf9sha1e3c3bdznz5sii2e9j10wpi5');
   const [websiteUrl, setWebsiteUrl] = useState('');
   const [batchMode, setBatchMode] = useState(false);
   const [batchUrls, setBatchUrls] = useState('');
@@ -681,6 +681,184 @@ https://company3.com"
                             <XCircle className="w-4 h-4 text-rose-400 flex-shrink-0 mt-0.5" />
                             <p className="text-rose-300 text-sm">{job.data.error}</p>
                           </div>
+                        </div>
+                      )}
+
+                      {/* Full Data View for Completed Jobs */}
+                      {job.status === 'completed' && job.data && (
+                        <div className="mt-4 space-y-4">
+                          {/* Company Info */}
+                          {(job.data.name || job.data.description) && (
+                            <div className="bg-white/5 rounded-xl p-4">
+                              <h4 className="text-white font-semibold mb-2 flex items-center gap-2">
+                                <Building2 className="w-4 h-4 text-blue-400" />
+                                Company Info
+                              </h4>
+                              {job.data.name && (
+                                <p className="text-lg font-bold text-white mb-1">{job.data.name}</p>
+                              )}
+                              {job.data.domain && (
+                                <p className="text-blue-400 text-sm mb-2">{job.data.domain}</p>
+                              )}
+                              {job.data.description && (
+                                <p className="text-slate-300 text-sm">{job.data.description}</p>
+                              )}
+                              {job.data.qualityScore && (
+                                <div className="mt-2 inline-block px-3 py-1 bg-emerald-500/20 text-emerald-300 rounded-full text-xs font-medium">
+                                  Quality Score: {job.data.qualityScore}
+                                </div>
+                              )}
+                            </div>
+                          )}
+
+                          {/* Logos */}
+                          {job.data.logos && job.data.logos.length > 0 && (
+                            <div className="bg-white/5 rounded-xl p-4">
+                              <h4 className="text-white font-semibold mb-3 flex items-center gap-2">
+                                🖼️ Logos ({job.data.logos.length})
+                              </h4>
+                              <div className="flex flex-wrap gap-3">
+                                {job.data.logos.map((logo: any, idx: number) => (
+                                  <div key={idx} className="bg-white/10 rounded-lg p-3 text-center min-w-[100px]">
+                                    {logo.formats && logo.formats[0]?.src && (
+                                      <img
+                                        src={logo.formats[0].src}
+                                        alt={logo.type || 'Logo'}
+                                        className="max-w-[80px] max-h-[60px] object-contain mx-auto mb-2"
+                                        onError={(e) => (e.currentTarget.style.display = 'none')}
+                                      />
+                                    )}
+                                    <span className="text-xs text-slate-400 capitalize">{logo.type || 'Logo'}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Colors */}
+                          {job.data.colors && job.data.colors.length > 0 && (
+                            <div className="bg-white/5 rounded-xl p-4">
+                              <h4 className="text-white font-semibold mb-3 flex items-center gap-2">
+                                🎨 Brand Colors ({job.data.colors.length})
+                              </h4>
+                              <div className="flex flex-wrap gap-2">
+                                {job.data.colors.map((color: any, idx: number) => (
+                                  <div key={idx} className="flex items-center gap-2 bg-white/10 rounded-lg px-3 py-2">
+                                    <div
+                                      className="w-8 h-8 rounded-md border border-white/20"
+                                      style={{ backgroundColor: color.hex }}
+                                    />
+                                    <span className="font-mono text-sm text-white">{color.hex}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Fonts */}
+                          {job.data.fonts && job.data.fonts.length > 0 && (
+                            <div className="bg-white/5 rounded-xl p-4">
+                              <h4 className="text-white font-semibold mb-3 flex items-center gap-2">
+                                🔤 Typography ({job.data.fonts.length})
+                              </h4>
+                              <div className="flex flex-wrap gap-2">
+                                {job.data.fonts.map((font: any, idx: number) => (
+                                  <div key={idx} className="bg-white/10 rounded-lg px-4 py-2 flex items-center justify-between gap-4">
+                                    <span className="text-white font-medium">{font.name || 'Unknown'}</span>
+                                    <span className="text-xs text-slate-400 capitalize">{font.type || ''}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Social Links */}
+                          {job.data.links && job.data.links.length > 0 && (
+                            <div className="bg-white/5 rounded-xl p-4">
+                              <h4 className="text-white font-semibold mb-3 flex items-center gap-2">
+                                🔗 Social Links ({job.data.links.length})
+                              </h4>
+                              <div className="space-y-2">
+                                {job.data.links.map((link: any, idx: number) => {
+                                  const getPlatform = (url: string) => {
+                                    if (url.includes('linkedin')) return '💼 LinkedIn';
+                                    if (url.includes('twitter') || url.includes('x.com')) return '🐦 Twitter/X';
+                                    if (url.includes('facebook')) return '📘 Facebook';
+                                    if (url.includes('instagram')) return '📷 Instagram';
+                                    if (url.includes('youtube')) return '📺 YouTube';
+                                    if (url.includes('github')) return '💻 GitHub';
+                                    return '🔗 Link';
+                                  };
+                                  return (
+                                    <a
+                                      key={idx}
+                                      href={link.url}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="flex items-center gap-3 bg-white/10 rounded-lg px-4 py-2 hover:bg-white/20 transition-colors"
+                                    >
+                                      <span className="text-sm font-medium text-white min-w-[100px]">{getPlatform(link.url)}</span>
+                                      <span className="text-xs text-slate-400 truncate flex-1">{link.url}</span>
+                                      <ExternalLink className="w-4 h-4 text-slate-400" />
+                                    </a>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Drive/Doc Links */}
+                          <div className="flex flex-wrap gap-2">
+                            {(job.data.folderUrl || job.data.storage?.drive_folder_url) && (
+                              <a
+                                href={job.data.folderUrl || job.data.storage?.drive_folder_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="btn-premium inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-lg text-sm font-medium"
+                              >
+                                <Download className="w-4 h-4" />
+                                Open Drive Folder
+                              </a>
+                            )}
+                            {(job.data.docUrl || job.data.storage?.doc_url || job.data.results?.doc_url) && (
+                              <a
+                                href={job.data.docUrl || job.data.storage?.doc_url || job.data.results?.doc_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg text-sm font-medium transition-colors"
+                              >
+                                <FileText className="w-4 h-4" />
+                                Open Document
+                              </a>
+                            )}
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                const blob = new Blob([JSON.stringify(job.data, null, 2)], { type: 'application/json' });
+                                const url = URL.createObjectURL(blob);
+                                const a = document.createElement('a');
+                                a.href = url;
+                                a.download = `${job.data.domain || 'profile'}_data.json`;
+                                a.click();
+                                URL.revokeObjectURL(url);
+                                showToast('success', 'JSON downloaded');
+                              }}
+                              className="inline-flex items-center gap-2 px-4 py-2 bg-purple-500/20 hover:bg-purple-500/30 border border-purple-500/30 text-purple-300 rounded-lg text-sm font-medium transition-colors"
+                            >
+                              <Download className="w-4 h-4" />
+                              Download JSON
+                            </button>
+                          </div>
+
+                          {/* Raw JSON Preview */}
+                          <details className="bg-white/5 rounded-xl overflow-hidden">
+                            <summary className="px-4 py-3 text-sm text-slate-400 cursor-pointer hover:text-white transition-colors">
+                              View Raw JSON Data
+                            </summary>
+                            <pre className="p-4 text-xs text-slate-300 overflow-x-auto max-h-64 bg-black/20">
+                              {JSON.stringify(job.data, null, 2)}
+                            </pre>
+                          </details>
                         </div>
                       )}
                     </div>
