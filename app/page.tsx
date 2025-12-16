@@ -69,7 +69,7 @@ const ToastNotification = ({ toast, onClose }: { toast: Toast; onClose: () => vo
 
 export default function EmployerProfileDashboard() {
   // State
-  const [webhookUrl, setWebhookUrl] = useState('https://hook.eu2.make.com/rkvy3ibltcxlz7ux8ud8mnetxwfn2kix');
+  const [webhookUrl, setWebhookUrl] = useState('https://hook.eu2.make.com/vdm78qerql1t3sdhi5h9f8vfu9nfawk1');
   const [websiteUrl, setWebsiteUrl] = useState('');
   const [batchMode, setBatchMode] = useState(false);
   const [batchUrls, setBatchUrls] = useState('');
@@ -421,8 +421,8 @@ export default function EmployerProfileDashboard() {
             <button
               onClick={() => setBatchMode(!batchMode)}
               className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all ${batchMode
-                  ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30'
-                  : 'bg-white/5 text-slate-400 hover:text-white border border-white/10'
+                ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30'
+                : 'bg-white/5 text-slate-400 hover:text-white border border-white/10'
                 }`}
             >
               <Upload className="w-4 h-4" />
@@ -564,7 +564,7 @@ https://company3.com"
                 <div
                   key={job.id}
                   className={`glass-card rounded-xl overflow-hidden transition-all duration-300 ${job.status === 'completed' ? 'border-emerald-500/20' :
-                      job.status === 'failed' ? 'border-rose-500/20' : 'border-blue-500/20'
+                    job.status === 'failed' ? 'border-rose-500/20' : 'border-blue-500/20'
                     }`}
                 >
                   {/* Job Header */}
@@ -575,7 +575,7 @@ https://company3.com"
                     <div className="flex items-center justify-between gap-4">
                       <div className="flex items-center gap-3 flex-1 min-w-0">
                         <div className={`status-badge ${job.status === 'completed' ? 'status-completed' :
-                            job.status === 'failed' ? 'status-failed' : 'status-processing'
+                          job.status === 'failed' ? 'status-failed' : 'status-processing'
                           }`}>
                           {job.status === 'completed' && <CheckCircle className="w-3 h-3" />}
                           {job.status === 'failed' && <XCircle className="w-3 h-3" />}
