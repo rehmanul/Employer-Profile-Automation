@@ -563,7 +563,7 @@ export default function EmployerProfilePro() {
                         </td>
                         <td className="px-4 py-3">
                           <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${p.status === 'completed' ? 'bg-emerald-500/20 text-emerald-400' :
-                              p.status === 'failed' ? 'bg-red-500/20 text-red-400' : 'bg-blue-500/20 text-blue-400'
+                            p.status === 'failed' ? 'bg-red-500/20 text-red-400' : 'bg-blue-500/20 text-blue-400'
                             }`}>
                             {p.status === 'completed' && <CheckCircle className="w-3 h-3" />}
                             {p.status === 'failed' && <XCircle className="w-3 h-3" />}
@@ -681,7 +681,7 @@ export default function EmployerProfilePro() {
 
         {/* Profile View */}
         {view === 'profile' && selectedProfile && (
-          <div className="max-w-4xl mx-auto">
+          <div className="w-full">
             <div className={`${t.card} border rounded-2xl backdrop-blur overflow-hidden shadow-2xl`}>
               {/* Header */}
               <div className="bg-gradient-to-r from-violet-600 to-indigo-600 px-6 py-6 flex justify-between">
@@ -707,7 +707,7 @@ export default function EmployerProfilePro() {
                 {/* Actions */}
                 <div className="flex flex-wrap gap-2">
                   <span className={`px-3 py-1.5 rounded-full text-sm font-medium flex items-center gap-1 ${selectedProfile.status === 'completed' ? 'bg-emerald-500/20 text-emerald-400' :
-                      selectedProfile.status === 'failed' ? 'bg-red-500/20 text-red-400' : 'bg-blue-500/20 text-blue-400'
+                    selectedProfile.status === 'failed' ? 'bg-red-500/20 text-red-400' : 'bg-blue-500/20 text-blue-400'
                     }`}>
                     {selectedProfile.status === 'completed' && <CheckCircle className="w-4 h-4" />}
                     {selectedProfile.status}
@@ -735,7 +735,7 @@ export default function EmployerProfilePro() {
                     {/* Logos */}
                     {selectedProfile.data.logos?.length > 0 && (
                       <div className={`${darkMode ? 'bg-white/5' : 'bg-gray-50'} rounded-xl p-4`}>
-                        <h3 className={`font-semibold ${t.text} mb-3 flex items-center gap-2`}><Award className="w-4 h-4 text-violet-400" />Logos ({selectedProfile.data.logos.length})</h3>
+                        <h3 className={`font-semibold ${t.text} mb-3 flex items-center gap-2`}><Award className="w-4 h-4 text-violet-400" />Logos ({selectedProfile.data.logos?.length || 0})</h3>
                         <div className="flex flex-wrap gap-3">
                           {selectedProfile.data.logos.map((logo, i) => (
                             <div key={i} className={`${darkMode ? 'bg-white/10' : 'bg-white'} rounded-lg p-3 text-center min-w-[100px] border ${t.tableBorder}`}>
@@ -750,7 +750,7 @@ export default function EmployerProfilePro() {
                     {/* Colors */}
                     {selectedProfile.data.colors?.length > 0 && (
                       <div className={`${darkMode ? 'bg-white/5' : 'bg-gray-50'} rounded-xl p-4`}>
-                        <h3 className={`font-semibold ${t.text} mb-3 flex items-center gap-2`}><Palette className="w-4 h-4 text-pink-400" />Colors ({selectedProfile.data.colors.length})</h3>
+                        <h3 className={`font-semibold ${t.text} mb-3 flex items-center gap-2`}><Palette className="w-4 h-4 text-pink-400" />Colors ({selectedProfile.data.colors?.length || 0})</h3>
                         <div className="flex flex-wrap gap-2">
                           {selectedProfile.data.colors.map((c, i) => (
                             <button key={i} onClick={() => copyToClipboard(c.hex, `color-${i}`)} className={`flex items-center gap-2 ${darkMode ? 'bg-white/10 hover:bg-white/20' : 'bg-white hover:bg-gray-100'} px-3 py-2 rounded-lg border ${t.tableBorder} transition-colors group`}>
@@ -766,7 +766,7 @@ export default function EmployerProfilePro() {
                     {/* Fonts */}
                     {selectedProfile.data.fonts?.length > 0 && (
                       <div className={`${darkMode ? 'bg-white/5' : 'bg-gray-50'} rounded-xl p-4`}>
-                        <h3 className={`font-semibold ${t.text} mb-3 flex items-center gap-2`}><Type className="w-4 h-4 text-orange-400" />Fonts ({selectedProfile.data.fonts.length})</h3>
+                        <h3 className={`font-semibold ${t.text} mb-3 flex items-center gap-2`}><Type className="w-4 h-4 text-orange-400" />Fonts ({selectedProfile.data.fonts?.length || 0})</h3>
                         <div className="flex flex-wrap gap-2">
                           {selectedProfile.data.fonts.map((f, i) => (
                             <span key={i} className={`${darkMode ? 'bg-white/10' : 'bg-white'} px-4 py-2 rounded-lg text-sm ${t.text} border ${t.tableBorder}`}>{f.name}</span>
@@ -778,7 +778,7 @@ export default function EmployerProfilePro() {
                     {/* Links */}
                     {selectedProfile.data.links?.length > 0 && (
                       <div className={`${darkMode ? 'bg-white/5' : 'bg-gray-50'} rounded-xl p-4`}>
-                        <h3 className={`font-semibold ${t.text} mb-3 flex items-center gap-2`}><Link2 className="w-4 h-4 text-blue-400" />Social Links ({selectedProfile.data.links.length})</h3>
+                        <h3 className={`font-semibold ${t.text} mb-3 flex items-center gap-2`}><Link2 className="w-4 h-4 text-blue-400" />Social Links ({selectedProfile.data.links?.length || 0})</h3>
                         <div className="space-y-2">
                           {selectedProfile.data.links.map((link, i) => (
                             <a key={i} href={link.url} target="_blank" className={`flex items-center gap-3 ${darkMode ? 'bg-white/10 hover:bg-white/20' : 'bg-white hover:bg-blue-50'} px-4 py-3 rounded-lg border ${t.tableBorder} transition-colors`}>
