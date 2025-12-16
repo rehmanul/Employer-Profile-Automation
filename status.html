@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Employer Profile Generator</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 800px; margin: 0 auto; padding: 40px; background-color: #f5f5f5; color: #333; }
+        .card { background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        h1 { margin-top: 0; color: #2c3e50; }
+        .input-group { margin-bottom: 20px; }
+        label { display: block; margin-bottom: 8px; font-weight: bold; }
+        input[type="url"] { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; font-size: 16px; }
+        button { background-color: #3498db; color: white; border: none; padding: 12px 24px; border-radius: 6px; font-size: 16px; cursor: pointer; transition: background 0.3s; }
+        button:hover { background-color: #2980b9; }
+        button:disabled { background-color: #bdc3c7; cursor: not-allowed; }
+        #status { margin-top: 20px; padding: 15px; border-radius: 6px; display: none; }
+        .status-processing { background-color: #e8f6f3; color: #1abc9c; border: 1px solid #a3e4d7; }
+        .status-success { background-color: #d4efdf; color: #27ae60; border: 1px solid #7dcea0; }
+        .status-error { background-color: #fadbd8; color: #c0392b; border: 1px solid #e6b0aa; }
+        .result-link { font-weight: bold; text-decoration: none; color: #27ae60; }
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h1>🚀 Arbeitgeber-Profil Generator</h1>
+        <p>Geben Sie die URL der Karriereseite oder Unternehmenswebsite ein, um das Profil automatisch zu erstellen.</p>
+        
+        <div class="input-group">
+            <label for="urlInput">Website URL</label>
+            <input type="url" id="urlInput" placeholder="https://beispiel-firma.de" required>
+        </div>
+        
+        <button id="generateBtn" onclick="startGeneration()">Profil erstellen</button>
+        
+        <div id="status" class="hidden"></div>
+    </div>
+
+    <script>
+        // CONFIGURATION: Replace with your actual Make.com Webhook URL after importing the blueprint
+        const WEBHOOK_URL = "https://hook.eu2.make.com/YOUR_WEBHOOK_HASH_HERE";
+
+        async function startGeneration() {
+            const urlInput = document.getElementById('urlInput');
+            const btn = document.getElementById('generateBtn');
+            const statusDiv = document.getElementById('status');
+            
+            const url = urlInput.value.trim();
+            if (!url) {
+                alert("Bitte geben Sie eine gültige URL ein.");
+                return;
+            }
+
+            // UI Update
+            btn.disabled = true;
+            btn.textContent = "Verarbeite... (Dies kann 1-2 Minuten dauern)";
+            statusDiv.className = "status-processing";
+            statusDiv.innerHTML = "🔄 Prozess gestartet... Bitte warten Sie, während wir die Daten analysieren und Dokumente erstellen.";
+            statusDiv.style.display = "block";
+
+            try {
+                // Determine timestamp for consistency
+                const timestamp = new Date().toLocaleString('de-DE');
+                
+                // Call Make.com Webhook
+                // Note: Ensure your Make.com scenario has a 'Webhook Response' module at the end 
+                // that returns JSON with a 'folderUrl' property.
+                const response = await fetch(WEBHOOK_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        website: url,
+                        timestamp: timestamp
+                    })
+                });
+
+                if (response.ok) {
+                    const data = await response.json().catch(() => ({})); 
+                    // Fallback if no JSON returned but 200 OK
+                    const folderUrl = data.folderUrl || data.webViewLink || "#";
+                    
+                    if (folderUrl !== "#") {
+                         statusDiv.className = "status-success";
+                         statusDiv.innerHTML = `✅ <strong>Erfolg!</strong> Das Profil wurde erstellt.<br><br><a href="${folderUrl}" target="_blank" class="result-link">📂 Google Drive Ordner öffnen</a>`;
+                    } else {
+                         statusDiv.className = "status-success";
+                         statusDiv.innerHTML = `✅ <strong>Erfolg!</strong> Der Prozess wurde abgeschlossen. Überprüfen Sie Ihren Google Drive Ordner.`;
+                    }
+                } else {
+                    throw new Error("Server antwortete mit Fehlercode: " + response.status);
+                }
+            } catch (error) {
+                console.error(error);
+                statusDiv.className = "status-error";
+                statusDiv.innerHTML = `❌ <strong>Fehler:</strong> ${error.message}<br>Bitte überprüfen Sie die URL und versuchen Sie es erneut.`;
+            } finally {
+                btn.disabled = false;
+                btn.textContent = "Profil erstellen";
+            }
+        }
+    </script>
+</body>
+</html>

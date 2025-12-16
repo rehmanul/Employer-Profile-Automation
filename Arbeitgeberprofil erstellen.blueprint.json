@@ -1,0 +1,1528 @@
+{
+    "name": "Arbeitgeberprofil erstellen",
+    "flow": [
+        {
+            "id": 11,
+            "module": "gateway:CustomWebHook",
+            "version": 1,
+            "parameters": {
+                "hook": 3701258,
+                "maxResults": 1
+            },
+            "mapper": {},
+            "metadata": {
+                "designer": {
+                    "x": 0,
+                    "y": 0
+                },
+                "restore": {
+                    "parameters": {
+                        "hook": {
+                            "label": "Arbeitgeberprofil erstellen",
+                            "data": {
+                                "editable": "true"
+                            }
+                        }
+                    }
+                },
+                "parameters": [
+                    {
+                        "name": "hook",
+                        "type": "hook:gateway-webhook",
+                        "label": "Webhook",
+                        "required": true
+                    },
+                    {
+                        "name": "maxResults",
+                        "type": "number",
+                        "label": "Maximum number of results"
+                    }
+                ],
+                "interface": [
+                    {
+                        "name": "source",
+                        "type": "text"
+                    },
+                    {
+                        "name": "website",
+                        "type": "text"
+                    },
+                    {
+                        "name": "ts",
+                        "type": "text"
+                    }
+                ],
+                "advanced": true
+            }
+        },
+        {
+            "id": 13,
+            "module": "util:SetVariable2",
+            "version": 1,
+            "parameters": {},
+            "mapper": {
+                "name": "norm_url",
+                "scope": "roundtrip",
+                "value": "{{replace(11.website; \"\"\"/$\"\"\"; \"\")}}"
+            },
+            "metadata": {
+                "designer": {
+                    "x": 300,
+                    "y": 0
+                },
+                "restore": {
+                    "expect": {
+                        "scope": {
+                            "label": "One cycle"
+                        }
+                    }
+                },
+                "expect": [
+                    {
+                        "name": "name",
+                        "type": "text",
+                        "label": "Variable name",
+                        "required": true
+                    },
+                    {
+                        "name": "scope",
+                        "type": "select",
+                        "label": "Variable lifetime",
+                        "required": true,
+                        "validate": {
+                            "enum": [
+                                "roundtrip",
+                                "execution"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "value",
+                        "type": "any",
+                        "label": "Variable value"
+                    }
+                ],
+                "interface": [
+                    {
+                        "name": "norm_url",
+                        "type": "any",
+                        "label": "norm_url"
+                    }
+                ],
+                "advanced": true
+            }
+        },
+        {
+            "id": 25,
+            "module": "google-drive:createAFolder",
+            "version": 4,
+            "parameters": {
+                "__IMTCONN__": 7740843
+            },
+            "mapper": {
+                "name": "Profil {{11.website}} {{11.timestamp}}",
+                "role": "reader",
+                "type": "domain",
+                "domain": "recruiting-now.de",
+                "shared": true,
+                "folderId": "/16PlMrkdgJGnZ0CjLufKHOmd1OzeJLI93",
+                "destination": "drive"
+            },
+            "metadata": {
+                "designer": {
+                    "x": 600,
+                    "y": 0
+                },
+                "restore": {
+                    "expect": {
+                        "role": {
+                            "mode": "chose",
+                            "label": "Reader"
+                        },
+                        "type": {
+                            "mode": "chose",
+                            "label": "Domain"
+                        },
+                        "folderId": {
+                            "mode": "chose",
+                            "path": [
+                                "Arbeitgeber Profile generiert"
+                            ]
+                        },
+                        "destination": {
+                            "label": "My Drive"
+                        }
+                    },
+                    "parameters": {
+                        "__IMTCONN__": {
+                            "data": {
+                                "scoped": "true",
+                                "connection": "google-restricted"
+                            },
+                            "label": "ki koordinator (ki.koordinator@recruiting-now.de)"
+                        }
+                    }
+                },
+                "parameters": [
+                    {
+                        "name": "__IMTCONN__",
+                        "type": "account:google-restricted",
+                        "label": "Connection",
+                        "required": true
+                    }
+                ],
+                "expect": [
+                    {
+                        "type": "hidden"
+                    },
+                    {
+                        "name": "destination",
+                        "type": "select",
+                        "label": "New Drive Location",
+                        "required": true,
+                        "validate": {
+                            "enum": [
+                                "drive",
+                                "share",
+                                "team"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "folderId",
+                        "type": "folder",
+                        "label": "New Folder Location",
+                        "required": true
+                    },
+                    {
+                        "name": "name",
+                        "type": "text",
+                        "label": "New Folder's Name"
+                    },
+                    {
+                        "name": "shared",
+                        "type": "boolean",
+                        "label": "Share Folder",
+                        "required": true
+                    },
+                    {
+                        "name": "role",
+                        "type": "select",
+                        "label": "Role",
+                        "required": true,
+                        "validate": {
+                            "enum": [
+                                "owner",
+                                "writer",
+                                "commenter",
+                                "reader"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "type",
+                        "type": "select",
+                        "label": "Type",
+                        "required": true,
+                        "validate": {
+                            "enum": [
+                                "user",
+                                "group",
+                                "domain",
+                                "anyone"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "domain",
+                        "type": "text",
+                        "label": "Domain",
+                        "required": true
+                    }
+                ]
+            }
+        },
+        {
+            "id": 69,
+            "module": "google-drive:updateAFileFolderAccess",
+            "version": 4,
+            "parameters": {
+                "__IMTCONN__": 7740843
+            },
+            "mapper": {
+                "role": "owner",
+                "folder": "/16PlMrkdgJGnZ0CjLufKHOmd1OzeJLI93",
+                "select": "folder",
+                "permission": "00385674675298349677",
+                "destination": "drive"
+            },
+            "metadata": {
+                "designer": {
+                    "x": 900,
+                    "y": 0
+                },
+                "restore": {
+                    "expect": {
+                        "role": {
+                            "mode": "chose",
+                            "label": "Owner"
+                        },
+                        "folder": {
+                            "mode": "chose",
+                            "path": [
+                                "Arbeitgeber Profile generiert"
+                            ]
+                        },
+                        "select": {
+                            "label": "Folder"
+                        },
+                        "permission": {
+                            "mode": "chose",
+                            "label": "KI Koordinator (owner)"
+                        },
+                        "destination": {
+                            "label": "My Drive"
+                        }
+                    },
+                    "parameters": {
+                        "__IMTCONN__": {
+                            "data": {
+                                "scoped": "true",
+                                "connection": "google-restricted"
+                            },
+                            "label": "ki koordinator (ki.koordinator@recruiting-now.de)"
+                        }
+                    }
+                },
+                "parameters": [
+                    {
+                        "name": "__IMTCONN__",
+                        "type": "account:google-restricted",
+                        "label": "Connection",
+                        "required": true
+                    }
+                ],
+                "expect": [
+                    {
+                        "name": "destination",
+                        "type": "select",
+                        "label": "Choose a Drive",
+                        "required": true,
+                        "validate": {
+                            "enum": [
+                                "drive",
+                                "share",
+                                "team"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "select",
+                        "type": "select",
+                        "label": "Select",
+                        "required": true,
+                        "validate": {
+                            "enum": [
+                                "file",
+                                "folder"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "role",
+                        "type": "select",
+                        "label": "Role",
+                        "required": true,
+                        "validate": {
+                            "enum": [
+                                "owner",
+                                "writer",
+                                "commenter",
+                                "reader"
+                            ]
+                        }
+                    },
+                    {
+                        "mode": "edit",
+                        "name": "folder",
+                        "type": "folder",
+                        "label": "Folder ID",
+                        "required": true
+                    },
+                    {
+                        "name": "permission",
+                        "type": "select",
+                        "label": "Permission ID",
+                        "required": true
+                    }
+                ]
+            }
+        },
+        {
+            "id": 26,
+            "module": "google-docs:createADocument",
+            "version": 1,
+            "parameters": {
+                "__IMTCONN__": 10941496
+            },
+            "mapper": {
+                "name": "Arbeitgeberprofil Benefits {{11.website}}",
+                "footer": false,
+                "header": false,
+                "content": "Arbeitgeberprofil für {{11.website}}",
+                "folderId": "{{25.id}}",
+                "destination": "drive"
+            },
+            "metadata": {
+                "designer": {
+                    "x": 1200,
+                    "y": 0
+                },
+                "restore": {
+                    "expect": {
+                        "folderId": {
+                            "mode": "edit",
+                            "path": []
+                        },
+                        "destination": {
+                            "label": "My Drive"
+                        }
+                    },
+                    "parameters": {
+                        "__IMTCONN__": {
+                            "data": {
+                                "scoped": "true",
+                                "connection": "google"
+                            },
+                            "label": "Recruiting Now KI Koordinator (ki.koordinator@recruiting-now.de)"
+                        }
+                    }
+                },
+                "parameters": [
+                    {
+                        "name": "__IMTCONN__",
+                        "type": "account:google",
+                        "label": "Connection",
+                        "required": true
+                    }
+                ],
+                "expect": [
+                    {
+                        "name": "name",
+                        "type": "text",
+                        "label": "Name",
+                        "required": true
+                    },
+                    {
+                        "name": "content",
+                        "type": "text",
+                        "label": "Content",
+                        "required": true
+                    },
+                    {
+                        "name": "destination",
+                        "type": "select",
+                        "label": "Choose a Drive",
+                        "required": true,
+                        "validate": {
+                            "enum": [
+                                "drive",
+                                "share",
+                                "team"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "header",
+                        "type": "boolean",
+                        "label": "Insert a Header",
+                        "required": true
+                    },
+                    {
+                        "name": "footer",
+                        "type": "boolean",
+                        "label": "Insert a Footer",
+                        "required": true
+                    },
+                    {
+                        "name": "folderId",
+                        "type": "folder",
+                        "label": "New Document's Location",
+                        "required": true
+                    }
+                ],
+                "advanced": true
+            }
+        },
+        {
+            "id": 68,
+            "module": "builtin:BasicRouter",
+            "version": 1,
+            "mapper": null,
+            "metadata": {
+                "designer": {
+                    "x": 1500,
+                    "y": 0
+                }
+            },
+            "routes": [
+                {
+                    "flow": [
+                        {
+                            "id": 48,
+                            "module": "apify:runActorNew",
+                            "version": 1,
+                            "parameters": {
+                                "__IMTCONN__": 10942194
+                            },
+                            "mapper": {
+                                "actorId": "aYG0l9s7dbB7j3gbS",
+                                "runSync": true,
+                                "actor_search_type": "store",
+                                "inputBodyaYG0l9s7dbB7j3gbS": "{\n  \"startUrls\": [\n    {\n      \"url\": \"{{13.norm_url}}\"\n    }\n  ],\n  \"linkSelector\": \"a[href]\",\n  \"includeUrlGlobs\": [\n    \"{{13.norm_url}}\",\n    \"{{13.norm_url}}/*\",\n    \"*/uber-uns*\",\n    \"*/ueber-uns*\",\n    \"*/about*\",\n    \"*/unternehmen*\",\n    \"*/karriere*\",\n    \"*/jobs*\",\n    \"*/benefits*\",\n    \"*/team*\",\n    \"*/was-uns-ausmacht*\",\n    \"*/wie-wir-arbeiten*\",\n    \"*/wir*\",\n    \"*/company*\",\n    \"*/arbeiten-bei*\",\n    \"*/stellenangebote*\",\n    \"*/vorteile*\",\n    \"*/mitarbeiter*\"\n  ],\n  \"crawlerType\": \"playwright:adaptive\",\n  \"maxCrawlPages\": 15,\n  \"maxCrawlDepth\": 3,\n  \"proxyConfiguration\": {\n    \"useApifyProxy\": true\n  },\n  \"pageFunction\": \"async function pageFunction(context) {\\n  const { request, page, log } = context;\\n  // Störelemente entfernen\\n  const toRemove = ['nav','footer','script','style','noscript','svg','img[src^=\\\"data:\\\"]'];\\n  try {\\n    await page.evaluate((sel) => {\\n      sel.forEach(s => { document.querySelectorAll(s).forEach(el => el.remove()); });\\n    }, toRemove);\\n  } catch (e) {\\n    log.debug('Cleanup skipped: ' + e.message);\\n  }\\n\\n  // Lesbaren Text holen\\n  const text = await page.evaluate(() => (document.body.innerText || '')\\n    .replace(/\\\\s+/g, ' ')  // Whitespace glätten\\n    .trim());\\n\\n  // Alle Links auslesen\\n  const allLinks = await page.$$eval('a[href]', as => as.map(a => a.href).filter(Boolean));\\n\\n  // Social Links filtern\\n  const socialRe = /(linkedin\\\\.com\\\\/company|facebook\\\\.com|instagram\\\\.com|twitter\\\\.com|x\\\\.com|youtube\\\\.com|kununu\\\\.com|xing\\\\.com|tiktok\\\\.com)/i;\\n  const socialLinks = Array.from(new Set(allLinks.filter(h => socialRe.test(h))));\\n\\n  return {\\n    url: request.url,\\n    text,\\n    socialLinks\\n  };\\n}\",\n  \"removeElementsCssSelector\": \"nav, footer, script, style, noscript, svg, img[src^='data:']\"\n}"
+                            },
+                            "metadata": {
+                                "designer": {
+                                    "x": 1800,
+                                    "y": 0
+                                },
+                                "restore": {
+                                    "expect": {
+                                        "memory": {
+                                            "mode": "chose",
+                                            "label": "Empty"
+                                        },
+                                        "actorId": {
+                                            "mode": "chose",
+                                            "label": "Website Content Crawler (apify/website-content-crawler)"
+                                        },
+                                        "runSync": {
+                                            "mode": "chose"
+                                        },
+                                        "actor_search_type": {
+                                            "label": "Apify Store Actors"
+                                        }
+                                    },
+                                    "parameters": {
+                                        "__IMTCONN__": {
+                                            "data": {
+                                                "scoped": "true",
+                                                "connection": "apify"
+                                            },
+                                            "label": "My Apify API Token connection (ki.koordinator@recruiting-now.de)"
+                                        }
+                                    }
+                                },
+                                "parameters": [
+                                    {
+                                        "name": "__IMTCONN__",
+                                        "type": "account:apify2,apify",
+                                        "label": "Connection",
+                                        "required": true
+                                    }
+                                ],
+                                "expect": [
+                                    {
+                                        "name": "actor_search_type",
+                                        "type": "select",
+                                        "label": "Search Actors from",
+                                        "required": true,
+                                        "validate": {
+                                            "enum": [
+                                                "user",
+                                                "store"
+                                            ]
+                                        }
+                                    },
+                                    {
+                                        "name": "runSync",
+                                        "type": "boolean",
+                                        "label": "Run synchronously",
+                                        "required": true
+                                    },
+                                    {
+                                        "name": "build",
+                                        "type": "text",
+                                        "label": "Build"
+                                    },
+                                    {
+                                        "name": "timeout",
+                                        "type": "uinteger",
+                                        "label": "Timeout"
+                                    },
+                                    {
+                                        "name": "memory",
+                                        "type": "select",
+                                        "label": "Memory",
+                                        "validate": {
+                                            "enum": [
+                                                128,
+                                                256,
+                                                512,
+                                                1024,
+                                                2048,
+                                                4096,
+                                                8192,
+                                                16384,
+                                                32768
+                                            ]
+                                        }
+                                    },
+                                    {
+                                        "name": "actorId",
+                                        "type": "select",
+                                        "label": "Actor",
+                                        "required": true
+                                    },
+                                    {
+                                        "name": "inputBodyaYG0l9s7dbB7j3gbS",
+                                        "type": "text",
+                                        "label": "Input JSON",
+                                        "required": true
+                                    },
+                                    {
+                                        "name": "maxTotalChargeUsd",
+                                        "type": "hidden",
+                                        "label": "Maximum cost per run"
+                                    },
+                                    {
+                                        "name": "maxItems",
+                                        "type": "hidden",
+                                        "label": "Maximum charged results"
+                                    }
+                                ]
+                            }
+                        },
+                        {
+                            "id": 61,
+                            "module": "apify:fetchDatasetItems",
+                            "version": 1,
+                            "parameters": {
+                                "__IMTCONN__": 10942194
+                            },
+                            "mapper": {
+                                "type": "clean",
+                                "limit": "200",
+                                "format": "json",
+                                "datasetId": "{{48.defaultDatasetId}}"
+                            },
+                            "metadata": {
+                                "designer": {
+                                    "x": 2100,
+                                    "y": 0
+                                },
+                                "restore": {
+                                    "expect": {
+                                        "type": {
+                                            "mode": "chose",
+                                            "label": "Clean"
+                                        },
+                                        "format": {
+                                            "mode": "chose",
+                                            "label": "JSON"
+                                        }
+                                    },
+                                    "parameters": {
+                                        "__IMTCONN__": {
+                                            "data": {
+                                                "scoped": "true",
+                                                "connection": "apify"
+                                            },
+                                            "label": "My Apify API Token connection (ki.koordinator@recruiting-now.de)"
+                                        }
+                                    }
+                                },
+                                "parameters": [
+                                    {
+                                        "name": "__IMTCONN__",
+                                        "type": "account:apify2,apify",
+                                        "label": "Connection",
+                                        "required": true
+                                    }
+                                ],
+                                "expect": [
+                                    {
+                                        "name": "datasetId",
+                                        "type": "text",
+                                        "label": "Dataset ID",
+                                        "required": true
+                                    },
+                                    {
+                                        "name": "type",
+                                        "type": "select",
+                                        "label": "Data transformation",
+                                        "required": true,
+                                        "validate": {
+                                            "enum": [
+                                                "clean",
+                                                "simplified",
+                                                "none"
+                                            ]
+                                        }
+                                    },
+                                    {
+                                        "name": "format",
+                                        "type": "select",
+                                        "label": "Format",
+                                        "required": true,
+                                        "validate": {
+                                            "enum": [
+                                                "json",
+                                                "csv",
+                                                "html",
+                                                "xml",
+                                                "rss",
+                                                "xlsx"
+                                            ]
+                                        }
+                                    },
+                                    {
+                                        "name": "limit",
+                                        "type": "uinteger",
+                                        "label": "Limit",
+                                        "validate": {
+                                            "max": 100000,
+                                            "min": 1
+                                        }
+                                    },
+                                    {
+                                        "name": "offset",
+                                        "type": "uinteger",
+                                        "label": "Offset",
+                                        "validate": {
+                                            "min": 0
+                                        }
+                                    }
+                                ]
+                            }
+                        },
+                        {
+                            "id": 67,
+                            "module": "builtin:BasicRouter",
+                            "version": 1,
+                            "mapper": null,
+                            "metadata": {
+                                "designer": {
+                                    "x": 2400,
+                                    "y": 0
+                                }
+                            },
+                            "routes": [
+                                {
+                                    "flow": [
+                                        {
+                                            "id": 62,
+                                            "module": "builtin:BasicAggregator",
+                                            "version": 1,
+                                            "parameters": {
+                                                "feeder": 61
+                                            },
+                                            "mapper": {
+                                                "text": "{{61.text}}"
+                                            },
+                                            "metadata": {
+                                                "designer": {
+                                                    "x": 2700,
+                                                    "y": 0
+                                                },
+                                                "restore": {
+                                                    "extra": {
+                                                        "feeder": {
+                                                            "label": "Apify - Get Dataset Items [61]"
+                                                        },
+                                                        "target": {
+                                                            "label": "Custom"
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        },
+                                        {
+                                            "id": 50,
+                                            "module": "util:SetVariable2",
+                                            "version": 1,
+                                            "parameters": {},
+                                            "mapper": {
+                                                "name": "aggregated_text",
+                                                "scope": "roundtrip",
+                                                "value": "{{62.array[].text}}"
+                                            },
+                                            "metadata": {
+                                                "designer": {
+                                                    "x": 3000,
+                                                    "y": 0
+                                                },
+                                                "restore": {
+                                                    "expect": {
+                                                        "scope": {
+                                                            "label": "One cycle"
+                                                        }
+                                                    }
+                                                },
+                                                "expect": [
+                                                    {
+                                                        "name": "name",
+                                                        "type": "text",
+                                                        "label": "Variable name",
+                                                        "required": true
+                                                    },
+                                                    {
+                                                        "name": "scope",
+                                                        "type": "select",
+                                                        "label": "Variable lifetime",
+                                                        "required": true,
+                                                        "validate": {
+                                                            "enum": [
+                                                                "roundtrip",
+                                                                "execution"
+                                                            ]
+                                                        }
+                                                    },
+                                                    {
+                                                        "name": "value",
+                                                        "type": "any",
+                                                        "label": "Variable value"
+                                                    }
+                                                ],
+                                                "interface": [
+                                                    {
+                                                        "name": "aggregated_text",
+                                                        "type": "any",
+                                                        "label": "aggregated_text"
+                                                    }
+                                                ],
+                                                "advanced": true
+                                            }
+                                        },
+                                        {
+                                            "id": 7,
+                                            "module": "gemini-ai:createACompletionGeminiPro",
+                                            "version": 1,
+                                            "parameters": {
+                                                "__IMTCONN__": 10945047
+                                            },
+                                            "mapper": {
+                                                "model": "gemini-3-pro-preview",
+                                                "contents": [
+                                                    {
+                                                        "role": "user",
+                                                        "parts": [
+                                                            {
+                                                                "type": "text",
+                                                                "text": "Erstelle eine kurze, ansprechende Arbeitgeberbeschreibung als Fließtext auf Basis des folgenden Inhalts: {{50.aggregated_text}}\n\r\n- Nenne ein paar Vorteile für Mitarbeiter\r\n\nKeine Formatierungen oder Markdown, Markup. Echte Zeilenumbrüche, keine \\n; keine Kommentare\r\n\r\nDer Text muss lesefertig sein und sich direkt an Bewerber:innen richten.\r\n"
+                                                            }
+                                                        ]
+                                                    }
+                                                ],
+                                                "system_instruction": {},
+                                                "generationConfig": {
+                                                    "responseModalities": [
+                                                        "text",
+                                                        "image"
+                                                    ],
+                                                    "thinkingConfig": {
+                                                        "thinkingBudget": "-1",
+                                                        "include_thoughts": true,
+                                                        "thinking_level": "high"
+                                                    },
+                                                    "mediaResolution": "media_resolution_medium",
+                                                    "imageConfig": {
+                                                        "imageSize": "2K"
+                                                    },
+                                                    "responseMimeType": "application/json"
+                                                },
+                                                "url_context": true,
+                                                "google_search_context": true,
+                                                "code_execution": true
+                                            },
+                                            "metadata": {
+                                                "designer": {
+                                                    "x": 3300,
+                                                    "y": 0
+                                                },
+                                                "restore": {
+                                                    "parameters": {
+                                                        "__IMTCONN__": {
+                                                            "label": "My Gemini AI connection",
+                                                            "data": {
+                                                                "scoped": "true",
+                                                                "connection": "gemini-ai-q9zyjp"
+                                                            }
+                                                        }
+                                                    },
+                                                    "expect": {
+                                                        "model": {
+                                                            "mode": "chose",
+                                                            "label": "Gemini 3 Pro Preview"
+                                                        },
+                                                        "contents": {
+                                                            "mode": "chose",
+                                                            "items": [
+                                                                {
+                                                                    "role": {
+                                                                        "mode": "chose",
+                                                                        "label": "User"
+                                                                    },
+                                                                    "parts": {
+                                                                        "mode": "chose",
+                                                                        "items": [
+                                                                            {
+                                                                                "type": {
+                                                                                    "mode": "chose",
+                                                                                    "label": "Text"
+                                                                                }
+                                                                            }
+                                                                        ]
+                                                                    }
+                                                                }
+                                                            ]
+                                                        },
+                                                        "system_instruction": {
+                                                            "nested": {
+                                                                "parts": {
+                                                                    "mode": "chose"
+                                                                }
+                                                            }
+                                                        },
+                                                        "safetySettings": {
+                                                            "mode": "chose"
+                                                        },
+                                                        "generationConfig": {
+                                                            "nested": {
+                                                                "stopSequences": {
+                                                                    "mode": "chose"
+                                                                },
+                                                                "responseModalities": {
+                                                                    "mode": "chose"
+                                                                },
+                                                                "thinkingConfig": {
+                                                                    "nested": {
+                                                                        "include_thoughts": {
+                                                                            "mode": "chose"
+                                                                        },
+                                                                        "thinking_level": {
+                                                                            "mode": "chose",
+                                                                            "label": "High"
+                                                                        }
+                                                                    }
+                                                                },
+                                                                "mediaResolution": {
+                                                                    "mode": "chose",
+                                                                    "label": "Medium"
+                                                                },
+                                                                "imageConfig": {
+                                                                    "nested": {
+                                                                        "imageSize": {
+                                                                            "mode": "chose",
+                                                                            "label": "2K"
+                                                                        }
+                                                                    }
+                                                                },
+                                                                "responseMimeType": {
+                                                                    "mode": "chose",
+                                                                    "label": "JSON Output"
+                                                                },
+                                                                "new_responseSchema": {
+                                                                    "mode": "edit"
+                                                                }
+                                                            }
+                                                        },
+                                                        "function_declarations_context": {
+                                                            "mode": "chose"
+                                                        },
+                                                        "url_context": {
+                                                            "mode": "chose"
+                                                        },
+                                                        "google_search_context": {
+                                                            "mode": "chose"
+                                                        },
+                                                        "code_execution": {
+                                                            "mode": "chose"
+                                                        },
+                                                        "google_maps_context": {
+                                                            "mode": "chose"
+                                                        },
+                                                        "file_search_store_context": {
+                                                            "mode": "chose"
+                                                        }
+                                                    }
+                                                },
+                                                "parameters": [
+                                                    {
+                                                        "name": "__IMTCONN__",
+                                                        "type": "account:gemini-ai-q9zyjp",
+                                                        "label": "Connection",
+                                                        "required": true
+                                                    }
+                                                ],
+                                                "expect": [
+                                                    {
+                                                        "name": "model",
+                                                        "type": "select",
+                                                        "label": "AI Model",
+                                                        "required": true
+                                                    },
+                                                    {
+                                                        "name": "contents",
+                                                        "type": "array",
+                                                        "label": "Messages",
+                                                        "required": true,
+                                                        "spec": [
+                                                            {
+                                                                "name": "role",
+                                                                "type": "select",
+                                                                "label": "Role",
+                                                                "options": [
+                                                                    {
+                                                                        "label": "User",
+                                                                        "value": "user"
+                                                                    },
+                                                                    {
+                                                                        "label": "Model",
+                                                                        "value": "model"
+                                                                    }
+                                                                ]
+                                                            },
+                                                            {
+                                                                "name": "parts",
+                                                                "spec": [
+                                                                    {
+                                                                        "name": "type",
+                                                                        "type": "select",
+                                                                        "label": "Message Type",
+                                                                        "options": [
+                                                                            {
+                                                                                "label": "Text",
+                                                                                "value": "text",
+                                                                                "nested": [
+                                                                                    {
+                                                                                        "name": "text",
+                                                                                        "type": "text",
+                                                                                        "label": "Text",
+                                                                                        "required": false
+                                                                                    }
+                                                                                ]
+                                                                            },
+                                                                            {
+                                                                                "label": "File",
+                                                                                "value": "file",
+                                                                                "nested": [
+                                                                                    {
+                                                                                        "name": "file_data",
+                                                                                        "spec": [
+                                                                                            {
+                                                                                                "name": "mime_type",
+                                                                                                "type": "text",
+                                                                                                "label": "Mime Type",
+                                                                                                "required": false
+                                                                                            },
+                                                                                            {
+                                                                                                "help": "You get this from the 'Upload a File' module.",
+                                                                                                "name": "file_uri",
+                                                                                                "type": "text",
+                                                                                                "label": "File URI",
+                                                                                                "required": false
+                                                                                            }
+                                                                                        ],
+                                                                                        "type": "collection",
+                                                                                        "label": "File Data",
+                                                                                        "required": false
+                                                                                    }
+                                                                                ]
+                                                                            },
+                                                                            {
+                                                                                "label": "Function Call",
+                                                                                "value": "functionCall",
+                                                                                "nested": [
+                                                                                    {
+                                                                                        "name": "functionCall",
+                                                                                        "spec": [
+                                                                                            {
+                                                                                                "help": "The name of the function to call.",
+                                                                                                "name": "name",
+                                                                                                "type": "text",
+                                                                                                "label": "Name",
+                                                                                                "required": true,
+                                                                                                "validate": {
+                                                                                                    "max": 64
+                                                                                                }
+                                                                                            },
+                                                                                            {
+                                                                                                "help": "The function parameters and values in JSON object format.",
+                                                                                                "name": "args",
+                                                                                                "type": "json",
+                                                                                                "label": "Arguments"
+                                                                                            },
+                                                                                            {
+                                                                                                "help": "The unique ID of the function call.",
+                                                                                                "name": "id",
+                                                                                                "type": "text",
+                                                                                                "label": "Function Call ID"
+                                                                                            }
+                                                                                        ],
+                                                                                        "type": "collection",
+                                                                                        "label": "Function Call"
+                                                                                    }
+                                                                                ]
+                                                                            },
+                                                                            {
+                                                                                "label": "Function Response",
+                                                                                "value": "functionResponse",
+                                                                                "nested": [
+                                                                                    {
+                                                                                        "name": "functionResponse",
+                                                                                        "spec": [
+                                                                                            {
+                                                                                                "help": "The name of the function to call.",
+                                                                                                "name": "name",
+                                                                                                "type": "text",
+                                                                                                "label": "Name",
+                                                                                                "required": true,
+                                                                                                "validate": {
+                                                                                                    "max": 64
+                                                                                                }
+                                                                                            },
+                                                                                            {
+                                                                                                "help": "The function response in JSON object format.",
+                                                                                                "name": "response",
+                                                                                                "type": "json",
+                                                                                                "label": "Response",
+                                                                                                "required": true
+                                                                                            }
+                                                                                        ],
+                                                                                        "type": "collection",
+                                                                                        "label": "Function Response"
+                                                                                    }
+                                                                                ]
+                                                                            }
+                                                                        ]
+                                                                    },
+                                                                    {
+                                                                        "name": "thoughtSignature",
+                                                                        "type": "text",
+                                                                        "label": "Thought Signature"
+                                                                    }
+                                                                ],
+                                                                "type": "array",
+                                                                "label": "Parts"
+                                                            }
+                                                        ]
+                                                    },
+                                                    {
+                                                        "name": "system_instruction",
+                                                        "type": "collection",
+                                                        "label": "System Instructions",
+                                                        "spec": [
+                                                            {
+                                                                "name": "parts",
+                                                                "type": "array",
+                                                                "label": "Prompts",
+                                                                "spec": {
+                                                                    "spec": [
+                                                                        {
+                                                                            "name": "text",
+                                                                            "type": "text",
+                                                                            "label": "Value"
+                                                                        }
+                                                                    ],
+                                                                    "type": "collection",
+                                                                    "label": "Prompt",
+                                                                    "name": "value"
+                                                                }
+                                                            }
+                                                        ]
+                                                    },
+                                                    {
+                                                        "name": "safetySettings",
+                                                        "type": "array",
+                                                        "label": "Safety Settings",
+                                                        "spec": [
+                                                            {
+                                                                "name": "category",
+                                                                "type": "select",
+                                                                "label": "Category",
+                                                                "options": [
+                                                                    {
+                                                                        "label": "Harassment content",
+                                                                        "value": "HARM_CATEGORY_HARASSMENT"
+                                                                    },
+                                                                    {
+                                                                        "label": "Hate speech and content",
+                                                                        "value": "HARM_CATEGORY_HATE_SPEECH"
+                                                                    },
+                                                                    {
+                                                                        "label": "Sexually explicit content.",
+                                                                        "value": "HARM_CATEGORY_SEXUALLY_EXPLICIT"
+                                                                    },
+                                                                    {
+                                                                        "label": "Dangerous content:",
+                                                                        "value": "HARM_CATEGORY_DANGEROUS_CONTENT"
+                                                                    }
+                                                                ]
+                                                            },
+                                                            {
+                                                                "name": "threshold",
+                                                                "type": "select",
+                                                                "label": "Threshold",
+                                                                "options": [
+                                                                    {
+                                                                        "label": "Block low and above.",
+                                                                        "value": "BLOCK_LOW_AND_ABOVE"
+                                                                    },
+                                                                    {
+                                                                        "label": "Block medium and above.",
+                                                                        "value": "BLOCK_MEDIUM_AND_ABOVE"
+                                                                    },
+                                                                    {
+                                                                        "label": "Block only high.",
+                                                                        "value": "BLOCK_ONLY_HIGH"
+                                                                    },
+                                                                    {
+                                                                        "label": "Block none.",
+                                                                        "value": "BLOCK_NONE"
+                                                                    }
+                                                                ]
+                                                            }
+                                                        ]
+                                                    },
+                                                    {
+                                                        "name": "generationConfig",
+                                                        "type": "collection",
+                                                        "label": "Generation configurations",
+                                                        "spec": [
+                                                            {
+                                                                "name": "stopSequences",
+                                                                "type": "array",
+                                                                "label": "Stop Sequences",
+                                                                "spec": {
+                                                                    "type": "text",
+                                                                    "label": "Stop Sequence",
+                                                                    "name": "value"
+                                                                }
+                                                            },
+                                                            {
+                                                                "name": "responseModalities",
+                                                                "type": "select",
+                                                                "label": "Response Modalities",
+                                                                "multiple": true,
+                                                                "validate": {
+                                                                    "enum": [
+                                                                        "text",
+                                                                        "image"
+                                                                    ]
+                                                                }
+                                                            },
+                                                            {
+                                                                "name": "maxOutputTokens",
+                                                                "type": "number",
+                                                                "label": "Max Output Tokens"
+                                                            },
+                                                            {
+                                                                "name": "temperature",
+                                                                "type": "number",
+                                                                "label": "Temperature",
+                                                                "validate": {
+                                                                    "max": 1,
+                                                                    "min": 0
+                                                                }
+                                                            },
+                                                            {
+                                                                "name": "topP",
+                                                                "type": "number",
+                                                                "label": "Top P",
+                                                                "validate": {
+                                                                    "max": 1,
+                                                                    "min": 0
+                                                                }
+                                                            },
+                                                            {
+                                                                "name": "topK",
+                                                                "type": "number",
+                                                                "label": "Top K"
+                                                            },
+                                                            {
+                                                                "name": "thinkingConfig",
+                                                                "type": "collection",
+                                                                "label": "Thinking Config",
+                                                                "spec": [
+                                                                    {
+                                                                        "name": "thinkingBudget",
+                                                                        "type": "number",
+                                                                        "label": "Thinking Budget"
+                                                                    },
+                                                                    {
+                                                                        "name": "include_thoughts",
+                                                                        "type": "boolean",
+                                                                        "label": "Include Thoughts"
+                                                                    },
+                                                                    {
+                                                                        "name": "thinking_level",
+                                                                        "type": "select",
+                                                                        "label": "Thinking Level",
+                                                                        "validate": {
+                                                                            "enum": [
+                                                                                "low",
+                                                                                "high"
+                                                                            ]
+                                                                        }
+                                                                    }
+                                                                ]
+                                                            },
+                                                            {
+                                                                "name": "mediaResolution",
+                                                                "type": "select",
+                                                                "label": "Media Resolution",
+                                                                "validate": {
+                                                                    "enum": [
+                                                                        "media_resolution_low",
+                                                                        "media_resolution_medium",
+                                                                        "media_resolution_high"
+                                                                    ]
+                                                                }
+                                                            },
+                                                            {
+                                                                "name": "imageConfig",
+                                                                "type": "collection",
+                                                                "label": "Image Configuration",
+                                                                "spec": [
+                                                                    {
+                                                                        "name": "imageSize",
+                                                                        "type": "select",
+                                                                        "label": "Image Size",
+                                                                        "validate": {
+                                                                            "enum": [
+                                                                                "1K",
+                                                                                "2K",
+                                                                                "4K"
+                                                                            ]
+                                                                        }
+                                                                    }
+                                                                ]
+                                                            },
+                                                            {
+                                                                "name": "responseMimeType",
+                                                                "type": "select",
+                                                                "label": "Response Format"
+                                                            },
+                                                            {
+                                                                "name": "responseSchema",
+                                                                "type": "any",
+                                                                "label": "Response Schema (Deprecated)"
+                                                            },
+                                                            {
+                                                                "name": "new_responseSchema",
+                                                                "type": "array",
+                                                                "label": "Response Schema",
+                                                                "spec": [
+                                                                    {
+                                                                        "name": "type",
+                                                                        "type": "select",
+                                                                        "label": "Value Type",
+                                                                        "options": [
+                                                                            {
+                                                                                "label": "String",
+                                                                                "value": "string",
+                                                                                "nested": "rpc://gemini-ai/1/createResponseSchema?type=string"
+                                                                            },
+                                                                            {
+                                                                                "label": "Enum",
+                                                                                "value": "enum",
+                                                                                "nested": "rpc://gemini-ai/1/createResponseSchema?type=enum"
+                                                                            },
+                                                                            {
+                                                                                "label": "Number",
+                                                                                "value": "number",
+                                                                                "nested": "rpc://gemini-ai/1/createResponseSchema?type=number"
+                                                                            },
+                                                                            {
+                                                                                "label": "Integer",
+                                                                                "value": "integer",
+                                                                                "nested": "rpc://gemini-ai/1/createResponseSchema?type=integer"
+                                                                            },
+                                                                            {
+                                                                                "label": "Boolean",
+                                                                                "value": "boolean",
+                                                                                "nested": "rpc://gemini-ai/1/createResponseSchema?type=boolean"
+                                                                            },
+                                                                            {
+                                                                                "label": "Object",
+                                                                                "value": "object",
+                                                                                "nested": "rpc://gemini-ai/1/createResponseSchema?type=object"
+                                                                            }
+                                                                        ]
+                                                                    }
+                                                                ]
+                                                            }
+                                                        ]
+                                                    },
+                                                    {
+                                                        "name": "tools",
+                                                        "type": "any",
+                                                        "label": "Tools"
+                                                    },
+                                                    {
+                                                        "name": "tool_config",
+                                                        "type": "any",
+                                                        "label": "Tool Config"
+                                                    },
+                                                    {
+                                                        "name": "function_declarations_context",
+                                                        "type": "boolean",
+                                                        "label": "Function Declarations Grounding"
+                                                    },
+                                                    {
+                                                        "name": "url_context",
+                                                        "type": "boolean",
+                                                        "label": "URL Context"
+                                                    },
+                                                    {
+                                                        "name": "google_search_context",
+                                                        "type": "boolean",
+                                                        "label": "Google Search Grounding"
+                                                    },
+                                                    {
+                                                        "name": "code_execution",
+                                                        "type": "boolean",
+                                                        "label": "Code Execution"
+                                                    },
+                                                    {
+                                                        "name": "google_maps_context",
+                                                        "type": "boolean",
+                                                        "label": "Google Maps Grounding"
+                                                    },
+                                                    {
+                                                        "name": "file_search_store_context",
+                                                        "type": "boolean",
+                                                        "label": "File Search Store Context"
+                                                    }
+                                                ],
+                                                "interface": [
+                                                    {
+                                                        "name": "result",
+                                                        "type": "text",
+                                                        "label": "Result"
+                                                    },
+                                                    {
+                                                        "name": "candidates",
+                                                        "spec": {
+                                                            "spec": [
+                                                                {
+                                                                    "name": "content",
+                                                                    "spec": [
+                                                                        {
+                                                                            "name": "parts",
+                                                                            "spec": {
+                                                                                "spec": [
+                                                                                    {
+                                                                                        "name": "text",
+                                                                                        "type": "text",
+                                                                                        "label": "Text"
+                                                                                    }
+                                                                                ],
+                                                                                "type": "collection"
+                                                                            },
+                                                                            "type": "array",
+                                                                            "label": "Parts"
+                                                                        },
+                                                                        {
+                                                                            "name": "role",
+                                                                            "type": "text",
+                                                                            "label": "Role"
+                                                                        }
+                                                                    ],
+                                                                    "type": "collection",
+                                                                    "label": "Content"
+                                                                },
+                                                                {
+                                                                    "name": "finishReason",
+                                                                    "type": "text",
+                                                                    "label": "Finish Reason"
+                                                                },
+                                                                {
+                                                                    "name": "index",
+                                                                    "type": "number",
+                                                                    "label": "Index"
+                                                                },
+                                                                {
+                                                                    "name": "safetyRatings",
+                                                                    "spec": {
+                                                                        "spec": [
+                                                                            {
+                                                                                "name": "category",
+                                                                                "type": "text",
+                                                                                "label": "Category"
+                                                                            },
+                                                                            {
+                                                                                "name": "probability",
+                                                                                "type": "text",
+                                                                                "label": "Probability"
+                                                                            }
+                                                                        ],
+                                                                        "type": "collection"
+                                                                    },
+                                                                    "type": "array",
+                                                                    "label": "Safety Ratings"
+                                                                }
+                                                            ],
+                                                            "type": "collection"
+                                                        },
+                                                        "type": "array",
+                                                        "label": "Candidates"
+                                                    },
+                                                    {
+                                                        "name": "usageMetadata",
+                                                        "spec": [
+                                                            {
+                                                                "name": "promptTokenCount",
+                                                                "type": "number",
+                                                                "label": "Prompt Token Count"
+                                                            },
+                                                            {
+                                                                "name": "candidatesTokenCount",
+                                                                "type": "number",
+                                                                "label": "Candidates Token Count"
+                                                            },
+                                                            {
+                                                                "name": "totalTokenCount",
+                                                                "type": "number",
+                                                                "label": "Total Token Count"
+                                                            }
+                                                        ],
+                                                        "type": "collection",
+                                                        "label": "Usage Metadata"
+                                                    }
+                                                ],
+                                                "advanced": true
+                                            }
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ]
+        }
+    ],
+    "metadata": {
+        "instant": true,
+        "version": 1,
+        "scenario": {
+            "roundtrips": 1,
+            "maxErrors": 3,
+            "autoCommit": true,
+            "autoCommitTriggerLast": true,
+            "sequential": false,
+            "slots": null,
+            "confidential": false,
+            "dataloss": false,
+            "dlq": true,
+            "freshVariables": false
+        },
+        "designer": {
+            "orphans": []
+        },
+        "zone": "eu2.make.com",
+        "notes": []
+    }
+}

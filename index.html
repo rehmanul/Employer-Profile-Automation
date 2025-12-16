@@ -1,0 +1,763 @@
+<!DOCTYPE html>
+<html lang="de">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Employer Profile Automation</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #0a0a0f;
+            --bg-secondary: #12121a;
+            --bg-card: rgba(255, 255, 255, 0.03);
+            --border-color: rgba(255, 255, 255, 0.08);
+            --text-primary: #ffffff;
+            --text-secondary: #a0a0b0;
+            --accent-primary: #6366f1;
+            --accent-secondary: #8b5cf6;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --error: #ef4444;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+
+        .bg-pattern {
+            position: fixed;
+            inset: 0;
+            background:
+                radial-gradient(circle at 20% 20%, rgba(99, 102, 241, 0.1) 0%, transparent 40%),
+                radial-gradient(circle at 80% 80%, rgba(139, 92, 246, 0.08) 0%, transparent 40%);
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        /* Header */
+        header {
+            text-align: center;
+            margin-bottom: 3rem;
+            padding: 2rem 0;
+        }
+
+        header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 0.5rem;
+        }
+
+        header p {
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+        }
+
+        /* Input Section */
+        .input-section {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            backdrop-filter: blur(10px);
+        }
+
+        .input-group {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .input-group input {
+            flex: 1;
+            min-width: 300px;
+            padding: 1rem 1.5rem;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            color: var(--text-primary);
+            font-size: 1rem;
+            outline: none;
+            transition: all 0.3s ease;
+        }
+
+        .input-group input:focus {
+            border-color: var(--accent-primary);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+        }
+
+        .input-group input::placeholder {
+            color: var(--text-secondary);
+        }
+
+        .btn {
+            padding: 1rem 2rem;
+            background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+            border: none;
+            border-radius: 12px;
+            color: white;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(99, 102, 241, 0.4);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Status */
+        .status {
+            display: none;
+            align-items: center;
+            gap: 1rem;
+            padding: 1rem 1.5rem;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            margin-bottom: 2rem;
+        }
+
+        .status.show {
+            display: flex;
+        }
+
+        .status.loading .spinner {
+            display: block;
+        }
+
+        .status.success {
+            border-color: var(--success);
+        }
+
+        .status.error {
+            border-color: var(--error);
+        }
+
+        .spinner {
+            width: 24px;
+            height: 24px;
+            border: 3px solid var(--border-color);
+            border-top-color: var(--accent-primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            display: none;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* Results */
+        .results {
+            display: none;
+        }
+
+        .results.show {
+            display: block;
+        }
+
+        /* Company Header Card */
+        .company-header {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            padding: 2.5rem;
+            margin-bottom: 2rem;
+            backdrop-filter: blur(10px);
+            display: flex;
+            gap: 2rem;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .company-logo {
+            width: 120px;
+            height: 120px;
+            background: var(--bg-secondary);
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            border: 1px solid var(--border-color);
+        }
+
+        .company-logo img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        }
+
+        .company-info {
+            flex: 1;
+            min-width: 250px;
+        }
+
+        .company-info h2 {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .company-info .domain {
+            color: var(--accent-primary);
+            font-size: 1.1rem;
+            margin-bottom: 1rem;
+        }
+
+        .company-info .description {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+            max-width: 600px;
+        }
+
+        .quality-badge {
+            background: linear-gradient(135deg, var(--success), #059669);
+            padding: 0.5rem 1.5rem;
+            border-radius: 50px;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        /* Grid Layout */
+        .data-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 1.5rem;
+        }
+
+        /* Cards */
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 1.5rem;
+            backdrop-filter: blur(10px);
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .card-header .icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+        }
+
+        .card-header h3 {
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+
+        /* Data Table */
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .data-table tr {
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .data-table tr:last-child {
+            border-bottom: none;
+        }
+
+        .data-table td {
+            padding: 0.75rem 0;
+        }
+
+        .data-table td:first-child {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            width: 120px;
+        }
+
+        .data-table td:last-child {
+            font-weight: 500;
+        }
+
+        /* Color Swatches */
+        .color-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .color-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            background: var(--bg-secondary);
+            padding: 0.75rem 1rem;
+            border-radius: 10px;
+            border: 1px solid var(--border-color);
+        }
+
+        .color-swatch {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            border: 2px solid var(--border-color);
+        }
+
+        .color-hex {
+            font-family: monospace;
+            font-size: 0.9rem;
+        }
+
+        /* Logo Grid */
+        .logo-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .logo-item {
+            background: var(--bg-secondary);
+            padding: 1rem;
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            text-align: center;
+            min-width: 120px;
+        }
+
+        .logo-item img {
+            max-width: 80px;
+            max-height: 60px;
+            object-fit: contain;
+            margin-bottom: 0.5rem;
+        }
+
+        .logo-item .label {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            text-transform: capitalize;
+        }
+
+        /* Social Links */
+        .social-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .social-item {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 0.75rem 1rem;
+            background: var(--bg-secondary);
+            border-radius: 10px;
+            border: 1px solid var(--border-color);
+            text-decoration: none;
+            color: var(--text-primary);
+            transition: all 0.2s ease;
+        }
+
+        .social-item:hover {
+            border-color: var(--accent-primary);
+            transform: translateX(5px);
+        }
+
+        .social-item .platform {
+            font-weight: 500;
+            min-width: 100px;
+        }
+
+        .social-item .url {
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        /* Action Buttons */
+        .actions {
+            display: flex;
+            gap: 1rem;
+            margin-top: 2rem;
+            flex-wrap: wrap;
+        }
+
+        .btn-secondary {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+        }
+
+        .btn-secondary:hover {
+            border-color: var(--accent-primary);
+            background: var(--bg-card);
+        }
+
+        /* Fonts List */
+        .font-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .font-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.75rem 1rem;
+            background: var(--bg-secondary);
+            border-radius: 10px;
+            border: 1px solid var(--border-color);
+        }
+
+        .font-item .name {
+            font-weight: 500;
+        }
+
+        .font-item .type {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            text-transform: capitalize;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+            }
+
+            header h1 {
+                font-size: 1.8rem;
+            }
+
+            .company-header {
+                flex-direction: column;
+                text-align: center;
+            }
+
+            .data-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="bg-pattern"></div>
+
+    <div class="container">
+        <header>
+            <h1>🏢 Employer Profile Automation</h1>
+            <p>Präzise Unternehmensdaten in Sekunden</p>
+        </header>
+
+        <div class="input-section">
+            <div class="input-group">
+                <input type="url" id="websiteInput" placeholder="Website-URL eingeben (z.B. https://stripe.com)" />
+                <button class="btn" id="submitBtn" onclick="fetchProfile()">
+                    <span>🚀</span> Profil abrufen
+                </button>
+            </div>
+        </div>
+
+        <div class="status" id="status">
+            <div class="spinner"></div>
+            <span id="statusText">Verarbeite...</span>
+        </div>
+
+        <div class="results" id="results">
+            <!-- Company Header -->
+            <div class="company-header">
+                <div class="company-logo" id="companyLogo">
+                    <span style="font-size: 3rem;">🏢</span>
+                </div>
+                <div class="company-info">
+                    <h2 id="companyName">Unternehmensname</h2>
+                    <div class="domain" id="companyDomain">domain.com</div>
+                    <p class="description" id="companyDescription">Unternehmensbeschreibung wird hier angezeigt...</p>
+                </div>
+                <div class="quality-badge" id="qualityBadge">Score: --</div>
+            </div>
+
+            <!-- Data Grid -->
+            <div class="data-grid">
+                <!-- Logos Card -->
+                <div class="card">
+                    <div class="card-header">
+                        <div class="icon">🖼️</div>
+                        <h3>Logos</h3>
+                    </div>
+                    <div class="logo-grid" id="logoGrid">
+                        <!-- Logos will be populated here -->
+                    </div>
+                </div>
+
+                <!-- Colors Card -->
+                <div class="card">
+                    <div class="card-header">
+                        <div class="icon">🎨</div>
+                        <h3>Markenfarben</h3>
+                    </div>
+                    <div class="color-list" id="colorList">
+                        <!-- Colors will be populated here -->
+                    </div>
+                </div>
+
+                <!-- Fonts Card -->
+                <div class="card">
+                    <div class="card-header">
+                        <div class="icon">🔤</div>
+                        <h3>Typografie</h3>
+                    </div>
+                    <div class="font-list" id="fontList">
+                        <!-- Fonts will be populated here -->
+                    </div>
+                </div>
+
+                <!-- Social Links Card -->
+                <div class="card">
+                    <div class="card-header">
+                        <div class="icon">🔗</div>
+                        <h3>Soziale Medien</h3>
+                    </div>
+                    <div class="social-list" id="socialList">
+                        <!-- Links will be populated here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="actions">
+                <a class="btn" id="driveLink" href="#" target="_blank">
+                    <span>📁</span> Google Drive öffnen
+                </a>
+                <a class="btn btn-secondary" id="docLink" href="#" target="_blank">
+                    <span>📄</span> Dokument öffnen
+                </a>
+                <button class="btn btn-secondary" onclick="downloadJSON()">
+                    <span>⬇️</span> JSON herunterladen
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // CONFIGURE YOUR WEBHOOK URL HERE
+        const WEBHOOK_URL = 'https://hook.eu2.make.com/8xsf9sha1e3c3bdznz5sii2e9j10wpi5';
+
+        let currentData = null;
+
+        async function fetchProfile() {
+            const input = document.getElementById('websiteInput');
+            const btn = document.getElementById('submitBtn');
+            const status = document.getElementById('status');
+            const statusText = document.getElementById('statusText');
+            const results = document.getElementById('results');
+
+            const website = input.value.trim();
+            if (!website) {
+                alert('Bitte geben Sie eine Website-URL ein');
+                return;
+            }
+
+            // Show loading
+            btn.disabled = true;
+            status.className = 'status show loading';
+            statusText.textContent = 'Rufe Unternehmensprofil ab...';
+            results.classList.remove('show');
+
+            try {
+                const response = await fetch(WEBHOOK_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        website: website,
+                        timestamp: new Date().toISOString()
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    currentData = data;
+                    displayResults(data);
+                    status.className = 'status show success';
+                    statusText.textContent = '✓ Profil erfolgreich abgerufen!';
+                    results.classList.add('show');
+                } else {
+                    throw new Error(data.error || 'Fehler beim Abrufen');
+                }
+            } catch (error) {
+                status.className = 'status show error';
+                statusText.textContent = '✗ Fehler: ' + error.message;
+            } finally {
+                btn.disabled = false;
+            }
+        }
+
+        function displayResults(data) {
+            // Company Info
+            document.getElementById('companyName').textContent = data.name || 'Unbekannt';
+            document.getElementById('companyDomain').textContent = data.domain || '';
+            document.getElementById('companyDescription').textContent = data.description || 'Keine Beschreibung verfügbar';
+            document.getElementById('qualityBadge').textContent = `Score: ${data.qualityScore || '--'}`;
+
+            // Links
+            document.getElementById('driveLink').href = data.folderUrl || '#';
+            document.getElementById('docLink').href = data.docUrl || '#';
+
+            // Logo
+            const logoContainer = document.getElementById('companyLogo');
+            if (data.logos && data.logos.length > 0) {
+                const primaryLogo = data.logos.find(l => l.type === 'logo') || data.logos[0];
+                if (primaryLogo && primaryLogo.formats && primaryLogo.formats.length > 0) {
+                    logoContainer.innerHTML = `<img src="${primaryLogo.formats[0].src}" alt="Logo" onerror="this.parentElement.innerHTML='<span style=font-size:3rem>🏢</span>'" />`;
+                }
+            }
+
+            // Logo Grid
+            const logoGrid = document.getElementById('logoGrid');
+            logoGrid.innerHTML = '';
+            if (data.logos && data.logos.length > 0) {
+                data.logos.forEach(logo => {
+                    if (logo.formats && logo.formats.length > 0) {
+                        const div = document.createElement('div');
+                        div.className = 'logo-item';
+                        div.innerHTML = `
+                            <img src="${logo.formats[0].src}" alt="${logo.type}" onerror="this.style.display='none'" />
+                            <div class="label">${logo.type || 'Logo'}</div>
+                        `;
+                        logoGrid.appendChild(div);
+                    }
+                });
+            } else {
+                logoGrid.innerHTML = '<p style="color: var(--text-secondary)">Keine Logos gefunden</p>';
+            }
+
+            // Colors
+            const colorList = document.getElementById('colorList');
+            colorList.innerHTML = '';
+            if (data.colors && data.colors.length > 0) {
+                data.colors.forEach(color => {
+                    const div = document.createElement('div');
+                    div.className = 'color-item';
+                    div.innerHTML = `
+                        <div class="color-swatch" style="background: ${color.hex}"></div>
+                        <span class="color-hex">${color.hex}</span>
+                    `;
+                    colorList.appendChild(div);
+                });
+            } else {
+                colorList.innerHTML = '<p style="color: var(--text-secondary)">Keine Farben gefunden</p>';
+            }
+
+            // Fonts
+            const fontList = document.getElementById('fontList');
+            fontList.innerHTML = '';
+            if (data.fonts && data.fonts.length > 0) {
+                data.fonts.forEach(font => {
+                    const div = document.createElement('div');
+                    div.className = 'font-item';
+                    div.innerHTML = `
+                        <span class="name">${font.name || 'Unbekannt'}</span>
+                        <span class="type">${font.type || ''}</span>
+                    `;
+                    fontList.appendChild(div);
+                });
+            } else {
+                fontList.innerHTML = '<p style="color: var(--text-secondary)">Keine Schriftarten gefunden</p>';
+            }
+
+            // Social Links
+            const socialList = document.getElementById('socialList');
+            socialList.innerHTML = '';
+            if (data.links && data.links.length > 0) {
+                data.links.forEach(link => {
+                    const a = document.createElement('a');
+                    a.className = 'social-item';
+                    a.href = link.url;
+                    a.target = '_blank';
+                    a.innerHTML = `
+                        <span class="platform">${getPlatformName(link.url)}</span>
+                        <span class="url">${link.url}</span>
+                    `;
+                    socialList.appendChild(a);
+                });
+            } else {
+                socialList.innerHTML = '<p style="color: var(--text-secondary)">Keine sozialen Links gefunden</p>';
+            }
+        }
+
+        function getPlatformName(url) {
+            if (url.includes('linkedin')) return '💼 LinkedIn';
+            if (url.includes('twitter') || url.includes('x.com')) return '🐦 Twitter/X';
+            if (url.includes('facebook')) return '📘 Facebook';
+            if (url.includes('instagram')) return '📷 Instagram';
+            if (url.includes('youtube')) return '📺 YouTube';
+            if (url.includes('tiktok')) return '🎵 TikTok';
+            if (url.includes('github')) return '💻 GitHub';
+            return '🔗 Link';
+        }
+
+        function downloadJSON() {
+            if (!currentData) return;
+            const blob = new Blob([JSON.stringify(currentData, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${currentData.domain || 'profile'}_data.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        // Allow Enter key to submit
+        document.getElementById('websiteInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') fetchProfile();
+        });
+    </script>
+</body>
+
+</html>
