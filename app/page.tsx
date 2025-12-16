@@ -21,10 +21,13 @@ interface Profile {
     domain?: string;
     name?: string;
     description?: string;
+    employerText?: string;
+    matchedBenefits?: string;
     folderUrl?: string;
     docUrl?: string;
     qualityScore?: number;
     logos?: Array<{ type: string; formats: Array<{ src: string; format: string }> }>;
+    images?: Array<{ formats: Array<{ src: string; format: string }> }>;
     colors?: Array<{ hex: string; type: string; brightness: number }>;
     fonts?: Array<{ name: string; type: string }>;
     links?: Array<{ url: string; name: string }>;
@@ -729,6 +732,47 @@ export default function EmployerProfilePro() {
                           {selectedProfile.data.qualityScore && <span className="text-xs bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full">Score: {selectedProfile.data.qualityScore}</span>}
                         </h3>
                         <p className={`${t.muted} text-sm`}>{selectedProfile.data.description}</p>
+                      </div>
+                    )}
+
+                    {/* AI-Generated Employer Text */}
+                    {selectedProfile.data.employerText && (
+                      <div className="bg-gradient-to-br from-violet-500/20 via-purple-500/15 to-pink-500/20 rounded-xl p-4 border border-violet-500/30">
+                        <h3 className="font-semibold text-white mb-2 flex items-center gap-2">
+                          <Zap className="w-4 h-4 text-violet-400" />
+                          <span className="bg-gradient-to-r from-violet-400 to-pink-400 bg-clip-text text-transparent">KI-Arbeitgeberbeschreibung</span>
+                        </h3>
+                        <p className="text-white/90 text-sm leading-relaxed">{selectedProfile.data.employerText}</p>
+                      </div>
+                    )}
+
+                    {/* Matched Benefits */}
+                    {selectedProfile.data.matchedBenefits && selectedProfile.data.matchedBenefits.trim() !== '' && (
+                      <div className={`${darkMode ? 'bg-emerald-500/10' : 'bg-emerald-50'} rounded-xl p-4 border border-emerald-500/20`}>
+                        <h3 className={`font-semibold ${t.text} mb-3 flex items-center gap-2`}>
+                          <CheckCircle className="w-4 h-4 text-emerald-400" />Erkannte Benefits
+                        </h3>
+                        <div className="flex flex-wrap gap-2">
+                          {selectedProfile.data.matchedBenefits.split(',').filter(b => b.trim()).map((benefit, i) => (
+                            <span key={i} className="bg-emerald-500/20 text-emerald-400 px-3 py-1.5 rounded-full text-sm font-medium">
+                              ✓ {benefit.trim()}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Images */}
+                    {(selectedProfile.data.images?.length ?? 0) > 0 && (
+                      <div className={`${darkMode ? 'bg-white/5' : 'bg-gray-50'} rounded-xl p-4`}>
+                        <h3 className={`font-semibold ${t.text} mb-3 flex items-center gap-2`}><Globe className="w-4 h-4 text-cyan-400" />Images ({selectedProfile.data.images?.length ?? 0})</h3>
+                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+                          {selectedProfile.data.images?.map((img, i) => (
+                            <div key={i} className={`${darkMode ? 'bg-white/10' : 'bg-white'} rounded-lg p-2 border ${t.tableBorder} overflow-hidden`}>
+                              {img.formats?.[0]?.src && <img src={img.formats[0].src} alt={`Image ${i + 1}`} className="w-full h-24 object-cover rounded" />}
+                            </div>
+                          ))}
+                        </div>
                       </div>
                     )}
 
