@@ -733,11 +733,11 @@ export default function EmployerProfilePro() {
                     )}
 
                     {/* Logos */}
-                    {selectedProfile.data.logos?.length > 0 && (
+                    {(selectedProfile.data.logos?.length ?? 0) > 0 && (
                       <div className={`${darkMode ? 'bg-white/5' : 'bg-gray-50'} rounded-xl p-4`}>
-                        <h3 className={`font-semibold ${t.text} mb-3 flex items-center gap-2`}><Award className="w-4 h-4 text-violet-400" />Logos ({selectedProfile.data.logos?.length || 0})</h3>
+                        <h3 className={`font-semibold ${t.text} mb-3 flex items-center gap-2`}><Award className="w-4 h-4 text-violet-400" />Logos ({selectedProfile.data.logos?.length ?? 0})</h3>
                         <div className="flex flex-wrap gap-3">
-                          {selectedProfile.data.logos.map((logo, i) => (
+                          {selectedProfile.data.logos?.map((logo, i) => (
                             <div key={i} className={`${darkMode ? 'bg-white/10' : 'bg-white'} rounded-lg p-3 text-center min-w-[100px] border ${t.tableBorder}`}>
                               {logo.formats?.[0]?.src && <img src={logo.formats[0].src} alt="" className="max-w-[80px] max-h-[50px] object-contain mx-auto mb-2" />}
                               <span className={`text-xs ${t.muted} capitalize`}>{logo.type}</span>
@@ -748,11 +748,11 @@ export default function EmployerProfilePro() {
                     )}
 
                     {/* Colors */}
-                    {selectedProfile.data.colors?.length > 0 && (
+                    {(selectedProfile.data.colors?.length ?? 0) > 0 && (
                       <div className={`${darkMode ? 'bg-white/5' : 'bg-gray-50'} rounded-xl p-4`}>
-                        <h3 className={`font-semibold ${t.text} mb-3 flex items-center gap-2`}><Palette className="w-4 h-4 text-pink-400" />Colors ({selectedProfile.data.colors?.length || 0})</h3>
+                        <h3 className={`font-semibold ${t.text} mb-3 flex items-center gap-2`}><Palette className="w-4 h-4 text-pink-400" />Colors ({selectedProfile.data.colors?.length ?? 0})</h3>
                         <div className="flex flex-wrap gap-2">
-                          {selectedProfile.data.colors.map((c, i) => (
+                          {selectedProfile.data.colors?.map((c, i) => (
                             <button key={i} onClick={() => copyToClipboard(c.hex, `color-${i}`)} className={`flex items-center gap-2 ${darkMode ? 'bg-white/10 hover:bg-white/20' : 'bg-white hover:bg-gray-100'} px-3 py-2 rounded-lg border ${t.tableBorder} transition-colors group`}>
                               <div className="w-6 h-6 rounded-md shadow" style={{ backgroundColor: c.hex }} />
                               <span className={`font-mono text-sm ${t.text}`}>{c.hex}</span>
@@ -764,11 +764,11 @@ export default function EmployerProfilePro() {
                     )}
 
                     {/* Fonts */}
-                    {selectedProfile.data.fonts?.length > 0 && (
+                    {(selectedProfile.data.fonts?.length ?? 0) > 0 && (
                       <div className={`${darkMode ? 'bg-white/5' : 'bg-gray-50'} rounded-xl p-4`}>
-                        <h3 className={`font-semibold ${t.text} mb-3 flex items-center gap-2`}><Type className="w-4 h-4 text-orange-400" />Fonts ({selectedProfile.data.fonts?.length || 0})</h3>
+                        <h3 className={`font-semibold ${t.text} mb-3 flex items-center gap-2`}><Type className="w-4 h-4 text-orange-400" />Fonts ({selectedProfile.data.fonts?.length ?? 0})</h3>
                         <div className="flex flex-wrap gap-2">
-                          {selectedProfile.data.fonts.map((f, i) => (
+                          {selectedProfile.data.fonts?.map((f, i) => (
                             <span key={i} className={`${darkMode ? 'bg-white/10' : 'bg-white'} px-4 py-2 rounded-lg text-sm ${t.text} border ${t.tableBorder}`}>{f.name}</span>
                           ))}
                         </div>
@@ -776,11 +776,11 @@ export default function EmployerProfilePro() {
                     )}
 
                     {/* Links */}
-                    {selectedProfile.data.links?.length > 0 && (
+                    {(selectedProfile.data.links?.length ?? 0) > 0 && (
                       <div className={`${darkMode ? 'bg-white/5' : 'bg-gray-50'} rounded-xl p-4`}>
-                        <h3 className={`font-semibold ${t.text} mb-3 flex items-center gap-2`}><Link2 className="w-4 h-4 text-blue-400" />Social Links ({selectedProfile.data.links?.length || 0})</h3>
+                        <h3 className={`font-semibold ${t.text} mb-3 flex items-center gap-2`}><Link2 className="w-4 h-4 text-blue-400" />Social Links ({selectedProfile.data.links?.length ?? 0})</h3>
                         <div className="space-y-2">
-                          {selectedProfile.data.links.map((link, i) => (
+                          {selectedProfile.data.links?.map((link, i) => (
                             <a key={i} href={link.url} target="_blank" className={`flex items-center gap-3 ${darkMode ? 'bg-white/10 hover:bg-white/20' : 'bg-white hover:bg-blue-50'} px-4 py-3 rounded-lg border ${t.tableBorder} transition-colors`}>
                               <span className="text-lg">{getPlatformEmoji(link.url)}</span>
                               <span className={`text-sm ${t.muted} truncate flex-1`}>{link.url}</span>
