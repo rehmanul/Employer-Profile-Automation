@@ -45,7 +45,7 @@ export default function EmployerProfilePro() {
   const [view, setView] = useState<'dashboard' | 'table' | 'generate' | 'profile' | 'settings'>('dashboard');
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [selectedProfile, setSelectedProfile] = useState<Profile | null>(null);
-  const [displayMode, setDisplayMode] = useState<'grid' | 'list' | 'table'>('table');
+  const [displayMode, setDisplayMode] = useState<'grid' | 'list' | 'table'>('grid');
 
   // Filters
   const [searchTerm, setSearchTerm] = useState('');
@@ -698,7 +698,7 @@ export default function EmployerProfilePro() {
                       </span>
                       {profile.data?.qualityScore && (
                         <span className="text-xs bg-violet-500/20 text-violet-400 px-2 py-1 rounded-full">
-                          Score: {profile.data.qualityScore}
+                          {Math.round((profile.data.qualityScore ?? 0) * 100)}%
                         </span>
                       )}
                     </div>
@@ -842,7 +842,7 @@ export default function EmployerProfilePro() {
                       <div className={`${darkMode ? 'bg-white/5' : 'bg-gray-50'} rounded-xl p-4`}>
                         <h3 className={`font-semibold ${t.text} mb-2 flex items-center gap-2`}>
                           <FileText className="w-4 h-4 text-violet-400" />Description
-                          {selectedProfile.data.qualityScore && <span className="text-xs bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full">Score: {selectedProfile.data.qualityScore}</span>}
+                          {selectedProfile.data.qualityScore && <span className="text-xs bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full">{Math.round((selectedProfile.data.qualityScore ?? 0) * 100)}%</span>}
                         </h3>
                         <p className={`${t.muted} text-sm`}>{selectedProfile.data.description}</p>
                       </div>
