@@ -1,881 +1,640 @@
-// Professional Employer Profile Automation Dashboard v3.0
-'use client';
+import React, { useState, useEffect } from 'react';
+import { Search, Plus, Trash2, Download, Eye, Filter, Grid, List, Settings, BarChart3, RefreshCw, ExternalLink, FileText, Award, FolderOpen, X, Calendar, Globe, CheckCircle, Clock, XCircle, Image, Palette, Type, Link2 } from 'lucide-react';
 
-import React, { useState, useEffect, useCallback, useRef } from 'react';
-import {
-  Search, CheckCircle, XCircle, Clock, RefreshCw, Download, ExternalLink,
-  TrendingUp, Zap, Database, Globe, Award, BarChart3, Activity, Sparkles,
-  FileText, Settings, Moon, Sun, Copy, Check, Filter, Trash2, ChevronDown,
-  ChevronUp, Building2, Link2, AlertCircle, X, Plus, Upload
-} from 'lucide-react';
+export default function EmployerProfileManager() {
+  const [view, setView] = useState('dashboard');
+  const [profiles, setProfiles] = useState([]);
+  const [selectedProfile, setSelectedProfile] = useState(null);
+  const [displayMode, setDisplayMode] = useState('grid');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterStatus, setFilterStatus] = useState('all');
+  const [sortBy, setSortBy] = useState('date-desc');
 
-// Types
-interface Job {
-  id: string;
-  websiteUrl: string;
-  status: 'processing' | 'completed' | 'failed';
-  startTime: string;
-  endTime?: string;
-  progress: number;
-  data?: any;
-  expanded?: boolean;
-}
-
-interface Stats {
-  total: number;
-  completed: number;
-  failed: number;
-  processing: number;
-  avgTime: number;
-}
-
-interface Toast {
-  id: string;
-  type: 'success' | 'error' | 'info';
-  message: string;
-}
-
-// Toast Component
-const ToastNotification = ({ toast, onClose }: { toast: Toast; onClose: () => void }) => {
-  useEffect(() => {
-    const timer = setTimeout(onClose, 4000);
-    return () => clearTimeout(timer);
-  }, [onClose]);
-
-  const bgColor = {
-    success: 'from-emerald-500/20 to-emerald-600/20 border-emerald-400/40',
-    error: 'from-rose-500/20 to-rose-600/20 border-rose-400/40',
-    info: 'from-blue-500/20 to-blue-600/20 border-blue-400/40',
-  }[toast.type];
-
-  const iconColor = {
-    success: 'text-emerald-400',
-    error: 'text-rose-400',
-    info: 'text-blue-400',
-  }[toast.type];
-
-  return (
-    <div className={`toast glass-card bg-gradient-to-r ${bgColor} rounded-xl p-4 flex items-center gap-3 shadow-2xl`}>
-      {toast.type === 'success' && <CheckCircle className={`w-5 h-5 ${iconColor}`} />}
-      {toast.type === 'error' && <XCircle className={`w-5 h-5 ${iconColor}`} />}
-      {toast.type === 'info' && <AlertCircle className={`w-5 h-5 ${iconColor}`} />}
-      <span className="text-white text-sm font-medium flex-1">{toast.message}</span>
-      <button onClick={onClose} className="text-slate-400 hover:text-white transition-colors">
-        <X className="w-4 h-4" />
-      </button>
-    </div>
-  );
-};
-
-export default function EmployerProfileDashboard() {
-  // State
+  const [url, setUrl] = useState('');
+  const [generating, setGenerating] = useState(false);
+  const [generationProgress, setGenerationProgress] = useState({ step: '', percent: 0 });
   const [webhookUrl, setWebhookUrl] = useState('https://hook.eu2.make.com/8xsf9sha1e3c3bdznz5sii2e9j10wpi5');
-  const [websiteUrl, setWebsiteUrl] = useState('');
-  const [batchMode, setBatchMode] = useState(false);
-  const [batchUrls, setBatchUrls] = useState('');
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [jobs, setJobs] = useState<Job[]>([]);
-  const [stats, setStats] = useState<Stats>({ total: 0, completed: 0, failed: 0, processing: 0, avgTime: 0 });
-  const [showWebhookConfig, setShowWebhookConfig] = useState(false);
-  const [darkMode, setDarkMode] = useState(true);
-  const [toasts, setToasts] = useState<Toast[]>([]);
-  const [filterStatus, setFilterStatus] = useState<string>('all');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [copiedId, setCopiedId] = useState<string | null>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  // Load jobs from localStorage
   useEffect(() => {
-    const savedJobs = localStorage.getItem('employer_jobs_v3');
-    if (savedJobs) {
-      try {
-        setJobs(JSON.parse(savedJobs));
-      } catch (e) {
-        console.error('Failed to load jobs:', e);
-      }
+    const stored = localStorage.getItem('employer_profiles_v2');
+    if (stored) {
+      setProfiles(JSON.parse(stored));
     }
   }, []);
 
-  // Save jobs
-  useEffect(() => {
-    if (jobs.length > 0) {
-      localStorage.setItem('employer_jobs_v3', JSON.stringify(jobs));
-    }
-  }, [jobs]);
-
-  // Update stats
-  useEffect(() => {
-    const total = jobs.length;
-    const completed = jobs.filter(j => j.status === 'completed').length;
-    const failed = jobs.filter(j => j.status === 'failed').length;
-    const processing = jobs.filter(j => j.status === 'processing').length;
-    const completedJobs = jobs.filter(j => j.status === 'completed' && j.endTime);
-    const avgTime = completedJobs.length > 0
-      ? completedJobs.reduce((acc, job) => {
-        const duration = new Date(job.endTime!).getTime() - new Date(job.startTime).getTime();
-        return acc + duration / 1000;
-      }, 0) / completedJobs.length
-      : 0;
-    setStats({ total, completed, failed, processing, avgTime });
-  }, [jobs]);
-
-  // Keyboard shortcuts
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
-        e.preventDefault();
-        if (!isProcessing) submitJob();
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [websiteUrl, batchUrls, isProcessing]);
-
-  // Toast helper
-  const showToast = useCallback((type: Toast['type'], message: string) => {
-    const id = Date.now().toString();
-    setToasts(prev => [...prev, { id, type, message }]);
-  }, []);
-
-  const removeToast = useCallback((id: string) => {
-    setToasts(prev => prev.filter(t => t.id !== id));
-  }, []);
-
-  // Validate URL
-  const validateUrl = (url: string): boolean => {
-    try {
-      const parsed = new URL(url.trim());
-      return ['http:', 'https:'].includes(parsed.protocol);
-    } catch {
-      return false;
-    }
+  const saveProfiles = (data) => {
+    localStorage.setItem('employer_profiles_v2', JSON.stringify(data));
+    setProfiles(data);
   };
 
-  // Submit job(s)
-  const submitJob = async () => {
-    const urls = batchMode
-      ? batchUrls.split('\n').map(u => u.trim()).filter(u => u.length > 0)
-      : [websiteUrl.trim()];
+  const generateProfile = async () => {
+    if (!url) return;
 
-    if (urls.length === 0) {
-      showToast('error', 'Please provide at least one website URL');
-      return;
-    }
+    const newProfile = {
+      id: Date.now().toString(),
+      url: url,
+      status: 'processing',
+      createdAt: new Date().toISOString(),
+      progress: 0
+    };
 
-    const invalidUrls = urls.filter(u => !validateUrl(u));
-    if (invalidUrls.length > 0) {
-      showToast('error', `Invalid URL(s): ${invalidUrls.slice(0, 2).join(', ')}${invalidUrls.length > 2 ? '...' : ''}`);
-      return;
-    }
+    const updated = [newProfile, ...profiles];
+    saveProfiles(updated);
+    setGenerating(true);
 
-    setIsProcessing(true);
-    showToast('info', `Processing ${urls.length} URL(s)...`);
+    const steps = [
+      { step: 'Connecting to webhook...', percent: 10 },
+      { step: 'Extracting domain...', percent: 25 },
+      { step: 'Fetching brand data...', percent: 50 },
+      { step: 'Processing logos...', percent: 70 },
+      { step: 'Creating Google Doc...', percent: 85 },
+      { step: 'Finalizing...', percent: 100 }
+    ];
 
-    for (const url of urls) {
-      const jobId = `JOB_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
-      const newJob: Job = {
-        id: jobId,
-        websiteUrl: url,
-        status: 'processing',
-        startTime: new Date().toISOString(),
-        progress: 0,
-        expanded: false
+    let currentStep = 0;
+    const progressInterval = setInterval(() => {
+      if (currentStep < steps.length) {
+        setGenerationProgress(steps[currentStep]);
+        currentStep++;
+      }
+    }, 2000);
+
+    try {
+      const response = await fetch(webhookUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          website: url,
+          timestamp: new Date().toISOString()
+        })
+      });
+
+      clearInterval(progressInterval);
+      setGenerationProgress({ step: 'Processing response...', percent: 95 });
+
+      let data = {};
+      const contentType = response.headers.get('content-type');
+      if (contentType?.includes('application/json')) {
+        data = await response.json();
+      } else {
+        const text = await response.text();
+        try { data = JSON.parse(text); } catch { data = { success: true }; }
+      }
+
+      const completedProfile = {
+        ...newProfile,
+        status: 'completed',
+        data: data,
+        completedAt: new Date().toISOString()
       };
 
-      setJobs(prev => [newJob, ...prev]);
+      const idx = updated.findIndex(p => p.id === newProfile.id);
+      updated[idx] = completedProfile;
+      saveProfiles(updated);
 
-      // Progress simulation
-      const progressInterval = setInterval(() => {
-        setJobs(prev => prev.map(job =>
-          job.id === jobId && job.status === 'processing'
-            ? { ...job, progress: Math.min(job.progress + Math.random() * 12, 92) }
-            : job
-        ));
-      }, 800);
-
-      try {
-        const response = await fetch(webhookUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            source: 'professional_dashboard_v3',
-            website: url,
-            website_url: url,
-            ts: new Date().toISOString(),
-            timestamp: new Date().toISOString(),
-            job_id: jobId,
-            website_host: new URL(url).hostname,
-            run_folder_hint: `PROFILE_${new URL(url).hostname}_${Date.now()}`,
-            assets: { capture_images: true, capture_logo: true, max_images: 5 },
-            outputs: { create_google_doc: true, include_benefits: true, include_matched_benefits: true }
-          })
-        });
-
-        clearInterval(progressInterval);
-
-        if (response.ok) {
-          let result = {};
-          try {
-            const contentType = response.headers.get('content-type');
-            if (contentType?.includes('application/json')) {
-              result = await response.json();
-            } else {
-              await response.text();
-              result = { success: true, status: 'completed' };
-            }
-          } catch {
-            result = { success: true, status: 'completed' };
-          }
-          updateJobStatus(jobId, 'completed', result);
-          showToast('success', `✓ ${new URL(url).hostname} processed`);
-        } else {
-          const errorText = await response.text();
-          updateJobStatus(jobId, 'failed', { error: `HTTP ${response.status}` });
-          showToast('error', `✗ ${new URL(url).hostname} failed`);
-        }
-      } catch (error: any) {
-        clearInterval(progressInterval);
-        updateJobStatus(jobId, 'failed', { error: error.message });
-        showToast('error', `✗ ${new URL(url).hostname}: ${error.message}`);
-      }
-
-      // Small delay between batch requests
-      if (urls.length > 1) await new Promise(r => setTimeout(r, 500));
+      setUrl('');
+      setView('dashboard');
+    } catch (err) {
+      clearInterval(progressInterval);
+      const idx = updated.findIndex(p => p.id === newProfile.id);
+      updated[idx] = { ...updated[idx], status: 'failed', error: err.message };
+      saveProfiles(updated);
+    } finally {
+      setGenerating(false);
+      setGenerationProgress({ step: '', percent: 0 });
     }
-
-    setIsProcessing(false);
-    setWebsiteUrl('');
-    setBatchUrls('');
   };
 
-  const updateJobStatus = (jobId: string, status: 'completed' | 'failed', data: any = {}) => {
-    setJobs(prev => prev.map(job =>
-      job.id === jobId
-        ? { ...job, status, endTime: new Date().toISOString(), data, progress: 100 }
-        : job
-    ));
+  const deleteProfile = (id) => {
+    if (window.confirm('Delete this profile?')) {
+      const updated = profiles.filter(p => p.id !== id);
+      saveProfiles(updated);
+      if (selectedProfile?.id === id) {
+        setSelectedProfile(null);
+        setView('dashboard');
+      }
+    }
   };
 
-  // Export to CSV
-  const exportToCsv = () => {
-    const headers = ['Job ID', 'Website URL', 'Status', 'Start Time', 'End Time', 'Duration (s)'];
-    const rows = jobs.map(job => {
-      const duration = job.endTime
-        ? ((new Date(job.endTime).getTime() - new Date(job.startTime).getTime()) / 1000).toFixed(1)
-        : 'N/A';
-      return [job.id, job.websiteUrl, job.status, job.startTime, job.endTime || '', duration];
-    });
-
-    const csv = [headers, ...rows].map(row => row.map(cell => `"${cell}"`).join(',')).join('\n');
-    const blob = new Blob([csv], { type: 'text/csv' });
+  const exportProfile = (profile) => {
+    const blob = new Blob([JSON.stringify(profile, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `employer_profiles_${new Date().toISOString().slice(0, 10)}.csv`;
+    a.download = `profile-${profile.data?.domain || profile.id}.json`;
     a.click();
     URL.revokeObjectURL(url);
-    showToast('success', 'Export completed');
   };
 
-  // Copy to clipboard
-  const copyToClipboard = (text: string, id: string) => {
-    navigator.clipboard.writeText(text);
-    setCopiedId(id);
-    setTimeout(() => setCopiedId(null), 2000);
-    showToast('success', 'Copied to clipboard');
-  };
-
-  // Toggle job expansion
-  const toggleJobExpand = (jobId: string) => {
-    setJobs(prev => prev.map(job =>
-      job.id === jobId ? { ...job, expanded: !job.expanded } : job
-    ));
-  };
-
-  // Clear history
-  const clearHistory = () => {
-    if (confirm('Are you sure you want to clear all job history?')) {
-      setJobs([]);
-      localStorage.removeItem('employer_jobs_v3');
-      showToast('info', 'History cleared');
+  const bulkDelete = (status) => {
+    if (window.confirm(`Delete all ${status} profiles?`)) {
+      const updated = profiles.filter(p => p.status !== status);
+      saveProfiles(updated);
     }
   };
 
-  // Filtered jobs
-  const filteredJobs = jobs.filter(job => {
-    const matchesStatus = filterStatus === 'all' || job.status === filterStatus;
-    const matchesSearch = searchQuery === '' ||
-      job.websiteUrl.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      job.id.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesStatus && matchesSearch;
-  });
-
-  // Helper functions
-  const getSuccessRate = () => stats.total === 0 ? 0 : Math.round((stats.completed / stats.total) * 100);
-
-  const formatDuration = (start: string, end?: string) => {
-    if (!end) return 'Processing...';
-    const seconds = Math.floor((new Date(end).getTime() - new Date(start).getTime()) / 1000);
-    return seconds < 60 ? `${seconds}s` : `${Math.floor(seconds / 60)}m ${seconds % 60}s`;
+  const getFilteredProfiles = () => {
+    let filtered = [...profiles];
+    if (searchTerm) {
+      filtered = filtered.filter(p =>
+        p.url.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (p.data?.name && p.data.name.toLowerCase().includes(searchTerm.toLowerCase()))
+      );
+    }
+    if (filterStatus !== 'all') {
+      filtered = filtered.filter(p => p.status === filterStatus);
+    }
+    filtered.sort((a, b) => {
+      switch (sortBy) {
+        case 'date-desc': return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+        case 'date-asc': return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+        case 'name-asc': return a.url.localeCompare(b.url);
+        case 'name-desc': return b.url.localeCompare(a.url);
+        default: return 0;
+      }
+    });
+    return filtered;
   };
 
-  const getHostname = (url: string) => {
-    try { return new URL(url).hostname; } catch { return url; }
+  const filteredProfiles = getFilteredProfiles();
+
+  const stats = {
+    total: profiles.length,
+    completed: profiles.filter(p => p.status === 'completed').length,
+    processing: profiles.filter(p => p.status === 'processing').length,
+    failed: profiles.filter(p => p.status === 'failed').length
+  };
+
+  const StatusBadge = ({ status }: { status: string }) => {
+    const config: Record<string, { icon: any; className: string; label: string }> = {
+      completed: { icon: CheckCircle, className: 'bg-green-100 text-green-700', label: 'Completed' },
+      processing: { icon: Clock, className: 'bg-blue-100 text-blue-700', label: 'Processing' },
+      failed: { icon: XCircle, className: 'bg-red-100 text-red-700', label: 'Failed' }
+    };
+    const { icon: Icon, className, label } = config[status] || config.failed;
+    return (
+      <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium ${className}`}>
+        <Icon className="w-3 h-3" />
+        {label}
+      </span>
+    );
+  };
+
+  const getPlatformIcon = (url: string) => {
+    if (url.includes('linkedin')) return '💼';
+    if (url.includes('twitter') || url.includes('x.com')) return '🐦';
+    if (url.includes('facebook')) return '📘';
+    if (url.includes('instagram')) return '📷';
+    if (url.includes('youtube')) return '📺';
+    if (url.includes('github')) return '💻';
+    return '🔗';
   };
 
   return (
-    <div className={`min-h-screen bg-gradient-to-br from-[#0a0e27] via-[#0f1535] to-[#0a0e27] p-4 md:p-6 lg:p-8 transition-colors duration-500`}>
-      {/* Animated Background */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-1/4 -left-32 w-80 h-80 bg-blue-600/10 rounded-full blur-3xl animate-float" />
-        <div className="absolute bottom-1/4 -right-32 w-80 h-80 bg-purple-600/10 rounded-full blur-3xl animate-float" style={{ animationDelay: '1s' }} />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-indigo-600/5 rounded-full blur-3xl" />
-      </div>
-
-      {/* Toast Container */}
-      <div className="fixed top-4 right-4 z-50 flex flex-col gap-2 max-w-sm">
-        {toasts.map(toast => (
-          <ToastNotification key={toast.id} toast={toast} onClose={() => removeToast(toast.id)} />
-        ))}
-      </div>
-
-      <div className="max-w-7xl mx-auto relative z-10 space-y-6">
-        {/* Header */}
-        <header className="glass-card rounded-2xl p-6 md:p-8 animate-fade-in">
-          <div className="flex items-center justify-between flex-wrap gap-4">
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <header className="bg-white border-b border-gray-200 sticky top-0 z-50 shadow-sm">
+        <div className="max-w-7xl mx-auto px-6 py-4">
+          <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <div className="relative">
-                <div className="w-14 h-14 bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 rounded-xl flex items-center justify-center shadow-lg animate-pulse-glow">
-                  <Building2 className="w-7 h-7 text-white" />
-                </div>
-                <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-emerald-500 rounded-full border-2 border-[#0a0e27] flex items-center justify-center">
-                  <Check className="w-3 h-3 text-white" />
-                </div>
+              <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-purple-600 rounded-xl flex items-center justify-center">
+                <Award className="w-6 h-6 text-white" />
               </div>
               <div>
-                <h1 className="text-2xl md:text-3xl font-bold text-white font-['Outfit']">
-                  Employer Profile Automation
-                </h1>
-                <p className="text-slate-400 text-sm mt-0.5">
-                  Professional AI-Powered Profile Generation
-                </p>
+                <h1 className="text-xl font-bold text-gray-900">Employer Profile Manager</h1>
+                <p className="text-sm text-gray-500">{stats.total} profiles • {stats.completed} completed</p>
               </div>
             </div>
-            <div className="flex items-center gap-2">
+
+            <div className="flex items-center gap-3">
               <button
-                onClick={() => setShowWebhookConfig(!showWebhookConfig)}
-                className="p-2.5 glass-card rounded-xl text-slate-300 hover:text-white hover:bg-white/10 transition-all"
-                title="Webhook Configuration"
+                onClick={() => setView('dashboard')}
+                className={`px-4 py-2 rounded-lg font-medium transition-all ${view === 'dashboard' ? 'bg-blue-100 text-blue-700' : 'text-gray-600 hover:bg-gray-100'}`}
+              >
+                <BarChart3 className="w-5 h-5" />
+              </button>
+              <button
+                onClick={() => setView('settings')}
+                className={`px-4 py-2 rounded-lg font-medium transition-all ${view === 'settings' ? 'bg-blue-100 text-blue-700' : 'text-gray-600 hover:bg-gray-100'}`}
               >
                 <Settings className="w-5 h-5" />
               </button>
-            </div>
-          </div>
-        </header>
-
-        {/* Stats Dashboard */}
-        <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 md:gap-4 animate-slide-up" style={{ animationDelay: '0.1s' }}>
-          {[
-            { icon: Database, label: 'Total Jobs', value: stats.total, color: 'blue' },
-            { icon: CheckCircle, label: 'Completed', value: stats.completed, color: 'emerald' },
-            { icon: Activity, label: 'Processing', value: stats.processing, color: 'purple' },
-            { icon: Zap, label: 'Avg Time', value: `${stats.avgTime.toFixed(1)}s`, color: 'amber' },
-            { icon: Award, label: 'Success', value: `${getSuccessRate()}%`, color: 'pink' },
-          ].map(({ icon: Icon, label, value, color }) => (
-            <div key={label} className={`glass-card glass-card-hover rounded-xl p-4 md:p-5 border-${color}-500/20`}>
-              <div className="flex items-center justify-between mb-2">
-                <Icon className={`w-6 h-6 text-${color}-400`} />
-                <span className="text-xl md:text-2xl font-bold text-white">{value}</span>
-              </div>
-              <p className={`text-${color}-300/80 text-xs md:text-sm font-medium`}>{label}</p>
-            </div>
-          ))}
-        </div>
-
-        {/* Webhook Config Panel */}
-        {showWebhookConfig && (
-          <div className="glass-card rounded-2xl p-6 animate-fade-in border-blue-500/20">
-            <div className="flex items-center gap-3 mb-4">
-              <Globe className="w-5 h-5 text-blue-400" />
-              <h2 className="text-lg font-semibold text-white">Webhook Configuration</h2>
-            </div>
-            <input
-              type="text"
-              value={webhookUrl}
-              onChange={(e) => setWebhookUrl(e.target.value)}
-              className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 font-mono text-sm text-white placeholder-slate-500 transition-all input-premium"
-              placeholder="Make.com webhook URL"
-            />
-            <p className="mt-2 text-xs text-slate-500">Configure your Make.com webhook endpoint for automated processing</p>
-          </div>
-        )}
-
-        {/* Job Submission Form */}
-        <div className="glass-card rounded-2xl p-6 md:p-8 animate-slide-up" style={{ animationDelay: '0.2s' }}>
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center gap-3">
-              <TrendingUp className="w-5 h-5 text-purple-400" />
-              <h2 className="text-lg font-semibold text-white">Create New Profile</h2>
-            </div>
-            <button
-              onClick={() => setBatchMode(!batchMode)}
-              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all ${batchMode
-                ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30'
-                : 'bg-white/5 text-slate-400 hover:text-white border border-white/10'
-                }`}
-            >
-              <Upload className="w-4 h-4" />
-              {batchMode ? 'Batch Mode ON' : 'Single URL'}
-            </button>
-          </div>
-
-          {batchMode ? (
-            <div className="space-y-3">
-              <label className="block text-sm font-medium text-slate-300">
-                Enter URLs (one per line)
-              </label>
-              <textarea
-                ref={textareaRef}
-                value={batchUrls}
-                onChange={(e) => setBatchUrls(e.target.value)}
-                className="w-full h-32 px-4 py-3 bg-white/5 border border-white/10 rounded-xl focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 text-white placeholder-slate-500 transition-all resize-none input-premium"
-                placeholder="https://company1.com
-https://company2.com
-https://company3.com"
-                disabled={isProcessing}
-              />
-              <p className="text-xs text-slate-500">
-                {batchUrls.split('\n').filter(u => u.trim()).length} URL(s) entered
-              </p>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              <label className="block text-sm font-medium text-slate-300">
-                Company Website URL
-              </label>
-              <div className="relative">
-                <Link2 className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500" />
-                <input
-                  ref={inputRef}
-                  type="url"
-                  value={websiteUrl}
-                  onChange={(e) => setWebsiteUrl(e.target.value)}
-                  className="w-full pl-12 pr-4 py-3.5 bg-white/5 border border-white/10 rounded-xl focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 text-white placeholder-slate-500 transition-all input-premium"
-                  placeholder="https://example.com"
-                  disabled={isProcessing}
-                />
-              </div>
-            </div>
-          )}
-
-          <button
-            onClick={submitJob}
-            disabled={isProcessing}
-            className="btn-premium w-full mt-6 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 hover:from-blue-600 hover:via-purple-600 hover:to-pink-600 text-white px-6 py-4 rounded-xl font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-3 shadow-lg"
-          >
-            {isProcessing ? (
-              <>
-                <RefreshCw className="w-5 h-5 animate-spin" />
-                Processing...
-              </>
-            ) : (
-              <>
-                <Sparkles className="w-5 h-5" />
-                Generate Profile{batchMode && batchUrls.split('\n').filter(u => u.trim()).length > 1 ? 's' : ''}
-                <span className="text-white/60 text-sm ml-1">(Ctrl+Enter)</span>
-              </>
-            )}
-          </button>
-        </div>
-
-        {/* Jobs List */}
-        <div className="glass-card rounded-2xl p-6 md:p-8 animate-slide-up" style={{ animationDelay: '0.3s' }}>
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
-            <div className="flex items-center gap-3">
-              <BarChart3 className="w-5 h-5 text-blue-400" />
-              <h2 className="text-lg font-semibold text-white">Recent Jobs</h2>
-              <span className="px-2 py-0.5 bg-blue-500/20 text-blue-300 text-xs font-medium rounded-full">
-                {filteredJobs.length}
-              </span>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-2">
-              {/* Search */}
-              <div className="relative flex-1 min-w-[200px]">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search..."
-                  className="w-full pl-9 pr-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white placeholder-slate-500 focus:ring-1 focus:ring-blue-500/50"
-                />
-              </div>
-
-              {/* Filter */}
-              <select
-                value={filterStatus}
-                onChange={(e) => setFilterStatus(e.target.value)}
-                className="px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white appearance-none cursor-pointer hover:bg-white/10 transition-colors"
+              <button
+                onClick={() => setView('generate')}
+                className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-2 rounded-lg font-semibold hover:shadow-lg transition-all flex items-center gap-2"
               >
-                <option value="all" className="bg-[#0f1535]">All Status</option>
-                <option value="completed" className="bg-[#0f1535]">Completed</option>
-                <option value="processing" className="bg-[#0f1535]">Processing</option>
-                <option value="failed" className="bg-[#0f1535]">Failed</option>
-              </select>
-
-              {/* Export */}
-              {jobs.length > 0 && (
-                <>
-                  <button
-                    onClick={exportToCsv}
-                    className="flex items-center gap-2 px-3 py-2 bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/30 rounded-lg text-emerald-300 text-sm font-medium transition-all"
-                  >
-                    <Download className="w-4 h-4" />
-                    Export
-                  </button>
-                  <button
-                    onClick={clearHistory}
-                    className="flex items-center gap-2 px-3 py-2 bg-rose-500/20 hover:bg-rose-500/30 border border-rose-500/30 rounded-lg text-rose-300 text-sm font-medium transition-all"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                    Clear
-                  </button>
-                </>
-              )}
+                <Plus className="w-5 h-5" />
+                New Profile
+              </button>
             </div>
           </div>
+        </div>
+      </header>
 
-          {/* Jobs Grid */}
-          {filteredJobs.length === 0 ? (
-            <div className="text-center py-16">
-              <div className="w-20 h-20 bg-gradient-to-br from-blue-500/10 to-purple-600/10 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                <Search className="w-10 h-10 text-slate-500" />
-              </div>
-              <p className="text-lg font-medium text-white mb-1">No jobs found</p>
-              <p className="text-slate-500 text-sm">
-                {searchQuery || filterStatus !== 'all' ? 'Try adjusting your filters' : 'Submit a website URL to get started'}
-              </p>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {filteredJobs.map((job) => (
-                <div
-                  key={job.id}
-                  className={`glass-card rounded-xl overflow-hidden transition-all duration-300 ${job.status === 'completed' ? 'border-emerald-500/20' :
-                    job.status === 'failed' ? 'border-rose-500/20' : 'border-blue-500/20'
-                    }`}
-                >
-                  {/* Job Header */}
-                  <div
-                    className="p-4 cursor-pointer hover:bg-white/5 transition-colors"
-                    onClick={() => toggleJobExpand(job.id)}
-                  >
-                    <div className="flex items-center justify-between gap-4">
-                      <div className="flex items-center gap-3 flex-1 min-w-0">
-                        <div className={`status-badge ${job.status === 'completed' ? 'status-completed' :
-                          job.status === 'failed' ? 'status-failed' : 'status-processing'
-                          }`}>
-                          {job.status === 'completed' && <CheckCircle className="w-3 h-3" />}
-                          {job.status === 'failed' && <XCircle className="w-3 h-3" />}
-                          {job.status === 'processing' && <RefreshCw className="w-3 h-3 animate-spin" />}
-                          {job.status}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <h3 className="font-semibold text-white truncate">
-                            {getHostname(job.websiteUrl)}
-                          </h3>
-                          <p className="text-xs text-slate-500 truncate">{job.websiteUrl}</p>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center gap-3">
-                        <span className="text-sm text-slate-400 hidden md:block">
-                          {formatDuration(job.startTime, job.endTime)}
-                        </span>
-                        <button
-                          onClick={(e) => { e.stopPropagation(); copyToClipboard(job.websiteUrl, job.id); }}
-                          className="p-2 hover:bg-white/10 rounded-lg transition-colors"
-                          title="Copy URL"
-                        >
-                          {copiedId === job.id ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4 text-slate-400" />}
-                        </button>
-                        <a
-                          href={job.websiteUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          onClick={(e) => e.stopPropagation()}
-                          className="p-2 hover:bg-white/10 rounded-lg transition-colors"
-                          title="Open website"
-                        >
-                          <ExternalLink className="w-4 h-4 text-slate-400" />
-                        </a>
-                        {job.expanded ? <ChevronUp className="w-4 h-4 text-slate-400" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
-                      </div>
-                    </div>
-
-                    {/* Progress bar for processing */}
-                    {job.status === 'processing' && (
-                      <div className="mt-3">
-                        <div className="progress-bar">
-                          <div className="progress-fill" style={{ width: `${job.progress}%` }} />
-                        </div>
-                        <p className="text-xs text-slate-500 mt-1 text-right">{Math.round(job.progress)}%</p>
-                      </div>
-                    )}
+      <main className="max-w-7xl mx-auto px-6 py-8">
+        {/* Dashboard View */}
+        {view === 'dashboard' && (
+          <div className="space-y-6">
+            {/* Stats */}
+            <div className="grid grid-cols-4 gap-4">
+              {[
+                { label: 'Total', value: stats.total, icon: FolderOpen, color: 'gray' },
+                { label: 'Completed', value: stats.completed, icon: CheckCircle, color: 'green' },
+                { label: 'Processing', value: stats.processing, icon: Clock, color: 'blue' },
+                { label: 'Failed', value: stats.failed, icon: XCircle, color: 'red' }
+              ].map(({ label, value, icon: Icon, color }) => (
+                <div key={label} className="bg-white rounded-xl p-6 border border-gray-200">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-gray-600 text-sm font-medium">{label}</span>
+                    <Icon className={`w-5 h-5 text-${color}-500`} />
                   </div>
-
-                  {/* Expanded Details */}
-                  {job.expanded && (
-                    <div className="border-t border-white/5 p-4 bg-white/[0.02] animate-fade-in">
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
-                        <div className="bg-white/5 rounded-lg p-3">
-                          <span className="text-slate-500 text-xs block mb-1">Job ID</span>
-                          <span className="font-mono text-white text-xs">{job.id.slice(-12)}</span>
-                        </div>
-                        <div className="bg-white/5 rounded-lg p-3">
-                          <span className="text-slate-500 text-xs block mb-1">Started</span>
-                          <span className="text-white text-xs">{new Date(job.startTime).toLocaleString('fr-FR')}</span>
-                        </div>
-                        <div className="bg-white/5 rounded-lg p-3">
-                          <span className="text-slate-500 text-xs block mb-1">Duration</span>
-                          <span className="text-white text-xs">{formatDuration(job.startTime, job.endTime)}</span>
-                        </div>
-                        <div className="bg-white/5 rounded-lg p-3">
-                          <span className="text-slate-500 text-xs block mb-1">Status</span>
-                          <span className="text-white text-xs capitalize">{job.status}</span>
-                        </div>
-                      </div>
-
-                      {job.status === 'completed' && (
-                        <div className="mt-4 flex flex-wrap gap-2">
-                          {job.data?.storage?.drive_folder_url && (
-                            <a
-                              href={job.data.storage.drive_folder_url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="btn-premium inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-lg text-sm font-medium"
-                            >
-                              <Download className="w-4 h-4" />
-                              View in Drive
-                            </a>
-                          )}
-                          {(job.data?.storage?.doc_url || job.data?.results?.doc_url || job.data?.doc_url) && (
-                            <a
-                              href={job.data?.storage?.doc_url || job.data?.results?.doc_url || job.data?.doc_url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="inline-flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg text-sm font-medium transition-colors"
-                            >
-                              <FileText className="w-4 h-4" />
-                              Open Document
-                            </a>
-                          )}
-                        </div>
-                      )}
-
-                      {job.status === 'failed' && job.data?.error && (
-                        <div className="mt-4 p-3 bg-rose-500/10 border border-rose-500/20 rounded-lg">
-                          <div className="flex items-start gap-2">
-                            <XCircle className="w-4 h-4 text-rose-400 flex-shrink-0 mt-0.5" />
-                            <p className="text-rose-300 text-sm">{job.data.error}</p>
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Full Data View for Completed Jobs */}
-                      {job.status === 'completed' && job.data && (
-                        <div className="mt-4 space-y-4">
-                          {/* Company Info */}
-                          {(job.data.name || job.data.description) && (
-                            <div className="bg-white/5 rounded-xl p-4">
-                              <h4 className="text-white font-semibold mb-2 flex items-center gap-2">
-                                <Building2 className="w-4 h-4 text-blue-400" />
-                                Company Info
-                              </h4>
-                              {job.data.name && (
-                                <p className="text-lg font-bold text-white mb-1">{job.data.name}</p>
-                              )}
-                              {job.data.domain && (
-                                <p className="text-blue-400 text-sm mb-2">{job.data.domain}</p>
-                              )}
-                              {job.data.description && (
-                                <p className="text-slate-300 text-sm">{job.data.description}</p>
-                              )}
-                              {job.data.qualityScore && (
-                                <div className="mt-2 inline-block px-3 py-1 bg-emerald-500/20 text-emerald-300 rounded-full text-xs font-medium">
-                                  Quality Score: {job.data.qualityScore}
-                                </div>
-                              )}
-                            </div>
-                          )}
-
-                          {/* Logos */}
-                          {job.data.logos && job.data.logos.length > 0 && (
-                            <div className="bg-white/5 rounded-xl p-4">
-                              <h4 className="text-white font-semibold mb-3 flex items-center gap-2">
-                                🖼️ Logos ({job.data.logos.length})
-                              </h4>
-                              <div className="flex flex-wrap gap-3">
-                                {job.data.logos.map((logo: any, idx: number) => (
-                                  <div key={idx} className="bg-white/10 rounded-lg p-3 text-center min-w-[100px]">
-                                    {logo.formats && logo.formats[0]?.src && (
-                                      <img
-                                        src={logo.formats[0].src}
-                                        alt={logo.type || 'Logo'}
-                                        className="max-w-[80px] max-h-[60px] object-contain mx-auto mb-2"
-                                        onError={(e) => (e.currentTarget.style.display = 'none')}
-                                      />
-                                    )}
-                                    <span className="text-xs text-slate-400 capitalize">{logo.type || 'Logo'}</span>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-
-                          {/* Colors */}
-                          {job.data.colors && job.data.colors.length > 0 && (
-                            <div className="bg-white/5 rounded-xl p-4">
-                              <h4 className="text-white font-semibold mb-3 flex items-center gap-2">
-                                🎨 Brand Colors ({job.data.colors.length})
-                              </h4>
-                              <div className="flex flex-wrap gap-2">
-                                {job.data.colors.map((color: any, idx: number) => (
-                                  <div key={idx} className="flex items-center gap-2 bg-white/10 rounded-lg px-3 py-2">
-                                    <div
-                                      className="w-8 h-8 rounded-md border border-white/20"
-                                      style={{ backgroundColor: color.hex }}
-                                    />
-                                    <span className="font-mono text-sm text-white">{color.hex}</span>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-
-                          {/* Fonts */}
-                          {job.data.fonts && job.data.fonts.length > 0 && (
-                            <div className="bg-white/5 rounded-xl p-4">
-                              <h4 className="text-white font-semibold mb-3 flex items-center gap-2">
-                                🔤 Typography ({job.data.fonts.length})
-                              </h4>
-                              <div className="flex flex-wrap gap-2">
-                                {job.data.fonts.map((font: any, idx: number) => (
-                                  <div key={idx} className="bg-white/10 rounded-lg px-4 py-2 flex items-center justify-between gap-4">
-                                    <span className="text-white font-medium">{font.name || 'Unknown'}</span>
-                                    <span className="text-xs text-slate-400 capitalize">{font.type || ''}</span>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-
-                          {/* Social Links */}
-                          {job.data.links && job.data.links.length > 0 && (
-                            <div className="bg-white/5 rounded-xl p-4">
-                              <h4 className="text-white font-semibold mb-3 flex items-center gap-2">
-                                🔗 Social Links ({job.data.links.length})
-                              </h4>
-                              <div className="space-y-2">
-                                {job.data.links.map((link: any, idx: number) => {
-                                  const getPlatform = (url: string) => {
-                                    if (url.includes('linkedin')) return '💼 LinkedIn';
-                                    if (url.includes('twitter') || url.includes('x.com')) return '🐦 Twitter/X';
-                                    if (url.includes('facebook')) return '📘 Facebook';
-                                    if (url.includes('instagram')) return '📷 Instagram';
-                                    if (url.includes('youtube')) return '📺 YouTube';
-                                    if (url.includes('github')) return '💻 GitHub';
-                                    return '🔗 Link';
-                                  };
-                                  return (
-                                    <a
-                                      key={idx}
-                                      href={link.url}
-                                      target="_blank"
-                                      rel="noopener noreferrer"
-                                      className="flex items-center gap-3 bg-white/10 rounded-lg px-4 py-2 hover:bg-white/20 transition-colors"
-                                    >
-                                      <span className="text-sm font-medium text-white min-w-[100px]">{getPlatform(link.url)}</span>
-                                      <span className="text-xs text-slate-400 truncate flex-1">{link.url}</span>
-                                      <ExternalLink className="w-4 h-4 text-slate-400" />
-                                    </a>
-                                  );
-                                })}
-                              </div>
-                            </div>
-                          )}
-
-                          {/* Drive/Doc Links */}
-                          <div className="flex flex-wrap gap-2">
-                            {(job.data.folderUrl || job.data.storage?.drive_folder_url) && (
-                              <a
-                                href={job.data.folderUrl || job.data.storage?.drive_folder_url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="btn-premium inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-lg text-sm font-medium"
-                              >
-                                <Download className="w-4 h-4" />
-                                Open Drive Folder
-                              </a>
-                            )}
-                            {(job.data.docUrl || job.data.storage?.doc_url || job.data.results?.doc_url) && (
-                              <a
-                                href={job.data.docUrl || job.data.storage?.doc_url || job.data.results?.doc_url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="inline-flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg text-sm font-medium transition-colors"
-                              >
-                                <FileText className="w-4 h-4" />
-                                Open Document
-                              </a>
-                            )}
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                const blob = new Blob([JSON.stringify(job.data, null, 2)], { type: 'application/json' });
-                                const url = URL.createObjectURL(blob);
-                                const a = document.createElement('a');
-                                a.href = url;
-                                a.download = `${job.data.domain || 'profile'}_data.json`;
-                                a.click();
-                                URL.revokeObjectURL(url);
-                                showToast('success', 'JSON downloaded');
-                              }}
-                              className="inline-flex items-center gap-2 px-4 py-2 bg-purple-500/20 hover:bg-purple-500/30 border border-purple-500/30 text-purple-300 rounded-lg text-sm font-medium transition-colors"
-                            >
-                              <Download className="w-4 h-4" />
-                              Download JSON
-                            </button>
-                          </div>
-
-                          {/* Raw JSON Preview */}
-                          <details className="bg-white/5 rounded-xl overflow-hidden">
-                            <summary className="px-4 py-3 text-sm text-slate-400 cursor-pointer hover:text-white transition-colors">
-                              View Raw JSON Data
-                            </summary>
-                            <pre className="p-4 text-xs text-slate-300 overflow-x-auto max-h-64 bg-black/20">
-                              {JSON.stringify(job.data, null, 2)}
-                            </pre>
-                          </details>
-                        </div>
-                      )}
-                    </div>
-                  )}
+                  <p className={`text-3xl font-bold text-${color}-600`}>{value}</p>
                 </div>
               ))}
             </div>
-          )}
-        </div>
 
-        {/* Footer */}
-        <footer className="text-center py-6">
-          <p className="text-slate-500 text-sm">
-            © 2025 Employer Profile Automation • Professional Grade
-          </p>
-        </footer>
-      </div>
+            {/* Filters */}
+            <div className="bg-white rounded-xl p-4 border border-gray-200">
+              <div className="flex items-center justify-between flex-wrap gap-4">
+                <div className="flex items-center gap-3 flex-1">
+                  <div className="relative flex-1 max-w-md">
+                    <Search className="absolute left-3 top-2.5 w-5 h-5 text-gray-400" />
+                    <input
+                      type="text"
+                      placeholder="Search profiles..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                  <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="px-4 py-2 border border-gray-300 rounded-lg">
+                    <option value="all">All Status</option>
+                    <option value="completed">Completed</option>
+                    <option value="processing">Processing</option>
+                    <option value="failed">Failed</option>
+                  </select>
+                  <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} className="px-4 py-2 border border-gray-300 rounded-lg">
+                    <option value="date-desc">Newest</option>
+                    <option value="date-asc">Oldest</option>
+                    <option value="name-asc">A-Z</option>
+                    <option value="name-desc">Z-A</option>
+                  </select>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button onClick={() => setDisplayMode('grid')} className={`p-2 rounded-lg ${displayMode === 'grid' ? 'bg-blue-100 text-blue-600' : 'text-gray-600'}`}>
+                    <Grid className="w-5 h-5" />
+                  </button>
+                  <button onClick={() => setDisplayMode('list')} className={`p-2 rounded-lg ${displayMode === 'list' ? 'bg-blue-100 text-blue-600' : 'text-gray-600'}`}>
+                    <List className="w-5 h-5" />
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Profiles */}
+            {filteredProfiles.length === 0 ? (
+              <div className="bg-white rounded-xl p-12 border border-gray-200 text-center">
+                <FolderOpen className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                <h3 className="text-xl font-semibold text-gray-900 mb-2">No Profiles Found</h3>
+                <p className="text-gray-600 mb-6">Generate your first employer profile</p>
+                <button onClick={() => setView('generate')} className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-3 rounded-lg font-semibold">
+                  <Plus className="w-5 h-5 inline mr-2" />Generate Profile
+                </button>
+              </div>
+            ) : (
+              <div className={displayMode === 'grid' ? 'grid grid-cols-3 gap-4' : 'space-y-3'}>
+                {filteredProfiles.map(profile => (
+                  <div key={profile.id} className="bg-white rounded-xl border border-gray-200 hover:shadow-lg transition-all p-5">
+                    <div className="flex items-start justify-between mb-3">
+                      {profile.data?.logos?.[0]?.formats?.[0]?.src ? (
+                        <img src={profile.data.logos[0].formats[0].src} alt="Logo" className="w-10 h-10 rounded-lg object-contain bg-gray-100" />
+                      ) : (
+                        <Globe className="w-10 h-10 text-blue-600" />
+                      )}
+                      <StatusBadge status={profile.status} />
+                    </div>
+                    <h3 className="font-bold text-gray-900 mb-1 truncate">{profile.data?.name || profile.url}</h3>
+                    <p className="text-sm text-gray-500 mb-1 truncate">{profile.data?.domain || profile.url}</p>
+                    <p className="text-xs text-gray-400 mb-4">{new Date(profile.createdAt).toLocaleDateString()}</p>
+
+                    {/* Quick data preview */}
+                    {profile.status === 'completed' && profile.data && (
+                      <div className="flex gap-2 mb-4 flex-wrap">
+                        {profile.data.colors?.length > 0 && (
+                          <div className="flex items-center gap-1">
+                            {profile.data.colors.slice(0, 4).map((c: any, i: number) => (
+                              <div key={i} className="w-4 h-4 rounded" style={{ backgroundColor: c.hex }} />
+                            ))}
+                          </div>
+                        )}
+                        {profile.data.logos?.length > 0 && (
+                          <span className="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full">
+                            {profile.data.logos.length} logos
+                          </span>
+                        )}
+                        {profile.data.links?.length > 0 && (
+                          <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">
+                            {profile.data.links.length} links
+                          </span>
+                        )}
+                      </div>
+                    )}
+
+                    <div className="flex items-center gap-2">
+                      <button onClick={() => { setSelectedProfile(profile); setView('profile-view'); }} className="flex-1 bg-blue-50 text-blue-600 px-3 py-2 rounded-lg hover:bg-blue-100 text-sm font-medium flex items-center justify-center gap-1">
+                        <Eye className="w-4 h-4" />View
+                      </button>
+                      <button onClick={() => exportProfile(profile)} className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg">
+                        <Download className="w-4 h-4" />
+                      </button>
+                      <button onClick={() => deleteProfile(profile.id)} className="p-2 text-red-600 hover:bg-red-50 rounded-lg">
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Bulk Actions */}
+            {profiles.length > 0 && (
+              <div className="bg-white rounded-xl p-4 border border-gray-200 flex items-center justify-between">
+                <h4 className="font-semibold text-gray-900">Bulk Actions</h4>
+                <div className="flex gap-2">
+                  {stats.failed > 0 && (
+                    <button onClick={() => bulkDelete('failed')} className="px-4 py-2 bg-red-50 text-red-600 rounded-lg text-sm font-medium">
+                      Delete Failed ({stats.failed})
+                    </button>
+                  )}
+                  <button onClick={() => {
+                    const blob = new Blob([JSON.stringify(profiles, null, 2)], { type: 'application/json' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `all-profiles-${Date.now()}.json`;
+                    a.click();
+                  }} className="px-4 py-2 bg-green-50 text-green-600 rounded-lg text-sm font-medium">
+                    Export All
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Generate View */}
+        {view === 'generate' && (
+          <div className="max-w-2xl mx-auto">
+            <div className="bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden">
+              <div className="bg-gradient-to-r from-blue-600 to-purple-600 px-8 py-6">
+                <h2 className="text-2xl font-bold text-white mb-2">Generate New Profile</h2>
+                <p className="text-blue-100">Enter a company website to fetch brand data</p>
+              </div>
+
+              <div className="p-8 space-y-6">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Company Website URL</label>
+                  <input
+                    type="text"
+                    value={url}
+                    onChange={(e) => setUrl(e.target.value)}
+                    placeholder="https://stripe.com"
+                    disabled={generating}
+                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
+                  />
+                </div>
+
+                <button
+                  onClick={generateProfile}
+                  disabled={generating || !url}
+                  className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold py-3 px-6 rounded-lg disabled:opacity-50 transition-all shadow-lg flex items-center justify-center gap-2"
+                >
+                  {generating ? <><RefreshCw className="w-5 h-5 animate-spin" />Generating...</> : <><Plus className="w-5 h-5" />Generate Profile</>}
+                </button>
+
+                {generating && (
+                  <div className="space-y-3">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-700">{generationProgress.step}</span>
+                      <span className="text-gray-500">{generationProgress.percent}%</span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-3">
+                      <div className="bg-gradient-to-r from-blue-600 to-purple-600 h-3 rounded-full transition-all" style={{ width: `${generationProgress.percent}%` }} />
+                    </div>
+                  </div>
+                )}
+
+                <button onClick={() => setView('dashboard')} className="w-full bg-gray-100 text-gray-700 py-2 rounded-lg hover:bg-gray-200">
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Profile View */}
+        {view === 'profile-view' && selectedProfile && (
+          <div className="max-w-4xl mx-auto">
+            <div className="bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden">
+              <div className="bg-gradient-to-r from-blue-600 to-purple-600 px-8 py-6 flex items-center justify-between">
+                <div className="flex items-center gap-4 text-white">
+                  {selectedProfile.data?.logos?.[0]?.formats?.[0]?.src ? (
+                    <img src={selectedProfile.data.logos[0].formats[0].src} alt="Logo" className="w-12 h-12 rounded-xl bg-white/20 object-contain p-1" />
+                  ) : (
+                    <Globe className="w-12 h-12" />
+                  )}
+                  <div>
+                    <h2 className="text-2xl font-bold">{selectedProfile.data?.name || selectedProfile.url}</h2>
+                    <p className="text-blue-100">{selectedProfile.data?.domain || selectedProfile.url}</p>
+                  </div>
+                </div>
+                <button onClick={() => { setView('dashboard'); setSelectedProfile(null); }} className="text-white hover:bg-white/20 p-2 rounded-lg">
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+
+              <div className="p-8 space-y-6">
+                <div className="flex items-center justify-between">
+                  <StatusBadge status={selectedProfile.status} />
+                  <div className="flex gap-2">
+                    {selectedProfile.data?.folderUrl && (
+                      <a href={selectedProfile.data.folderUrl} target="_blank" rel="noopener noreferrer" className="px-4 py-2 bg-blue-50 text-blue-600 rounded-lg text-sm font-medium flex items-center gap-1">
+                        <ExternalLink className="w-4 h-4" />Drive
+                      </a>
+                    )}
+                    {selectedProfile.data?.docUrl && (
+                      <a href={selectedProfile.data.docUrl} target="_blank" rel="noopener noreferrer" className="px-4 py-2 bg-green-50 text-green-600 rounded-lg text-sm font-medium flex items-center gap-1">
+                        <FileText className="w-4 h-4" />Doc
+                      </a>
+                    )}
+                    <button onClick={() => exportProfile(selectedProfile)} className="px-4 py-2 bg-purple-50 text-purple-600 rounded-lg text-sm font-medium flex items-center gap-1">
+                      <Download className="w-4 h-4" />Export
+                    </button>
+                    <button onClick={() => { deleteProfile(selectedProfile.id); }} className="px-4 py-2 bg-red-50 text-red-600 rounded-lg text-sm font-medium flex items-center gap-1">
+                      <Trash2 className="w-4 h-4" />Delete
+                    </button>
+                  </div>
+                </div>
+
+                {selectedProfile.status === 'completed' && selectedProfile.data && (
+                  <>
+                    {/* Description */}
+                    {selectedProfile.data.description && (
+                      <div className="bg-gray-50 rounded-xl p-6 border border-gray-200">
+                        <h3 className="font-bold text-gray-900 mb-3 flex items-center gap-2">
+                          <FileText className="w-5 h-5 text-blue-600" />Description
+                        </h3>
+                        <p className="text-gray-700">{selectedProfile.data.description}</p>
+                        {selectedProfile.data.qualityScore && (
+                          <div className="mt-3 inline-block px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-medium">
+                            Quality Score: {selectedProfile.data.qualityScore}
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Logos */}
+                    {selectedProfile.data.logos?.length > 0 && (
+                      <div className="bg-gray-50 rounded-xl p-6 border border-gray-200">
+                        <h3 className="font-bold text-gray-900 mb-3 flex items-center gap-2">
+                          <Image className="w-5 h-5 text-purple-600" />Logos ({selectedProfile.data.logos.length})
+                        </h3>
+                        <div className="flex flex-wrap gap-4">
+                          {selectedProfile.data.logos.map((logo: any, i: number) => (
+                            <div key={i} className="bg-white rounded-lg p-4 border border-gray-200 text-center min-w-[120px]">
+                              {logo.formats?.[0]?.src && (
+                                <img src={logo.formats[0].src} alt={logo.type} className="max-w-[100px] max-h-[60px] object-contain mx-auto mb-2" />
+                              )}
+                              <span className="text-xs text-gray-500 capitalize">{logo.type}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Colors */}
+                    {selectedProfile.data.colors?.length > 0 && (
+                      <div className="bg-gray-50 rounded-xl p-6 border border-gray-200">
+                        <h3 className="font-bold text-gray-900 mb-3 flex items-center gap-2">
+                          <Palette className="w-5 h-5 text-pink-600" />Brand Colors ({selectedProfile.data.colors.length})
+                        </h3>
+                        <div className="flex flex-wrap gap-3">
+                          {selectedProfile.data.colors.map((color: any, i: number) => (
+                            <div key={i} className="flex items-center gap-2 bg-white px-4 py-2 rounded-lg border border-gray-200">
+                              <div className="w-8 h-8 rounded-md border border-gray-300" style={{ backgroundColor: color.hex }} />
+                              <span className="font-mono text-sm text-gray-700">{color.hex}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Fonts */}
+                    {selectedProfile.data.fonts?.length > 0 && (
+                      <div className="bg-gray-50 rounded-xl p-6 border border-gray-200">
+                        <h3 className="font-bold text-gray-900 mb-3 flex items-center gap-2">
+                          <Type className="w-5 h-5 text-orange-600" />Typography ({selectedProfile.data.fonts.length})
+                        </h3>
+                        <div className="flex flex-wrap gap-3">
+                          {selectedProfile.data.fonts.map((font: any, i: number) => (
+                            <div key={i} className="bg-white px-4 py-2 rounded-lg border border-gray-200">
+                              <span className="font-medium text-gray-900">{font.name}</span>
+                              {font.type && <span className="text-xs text-gray-500 ml-2 capitalize">{font.type}</span>}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Social Links */}
+                    {selectedProfile.data.links?.length > 0 && (
+                      <div className="bg-gray-50 rounded-xl p-6 border border-gray-200">
+                        <h3 className="font-bold text-gray-900 mb-3 flex items-center gap-2">
+                          <Link2 className="w-5 h-5 text-blue-600" />Social Links ({selectedProfile.data.links.length})
+                        </h3>
+                        <div className="space-y-2">
+                          {selectedProfile.data.links.map((link: any, i: number) => (
+                            <a key={i} href={link.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 bg-white px-4 py-3 rounded-lg border border-gray-200 hover:bg-blue-50 transition-colors">
+                              <span className="text-xl">{getPlatformIcon(link.url)}</span>
+                              <span className="text-gray-700 text-sm truncate flex-1">{link.url}</span>
+                              <ExternalLink className="w-4 h-4 text-gray-400" />
+                            </a>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Raw JSON */}
+                    <details className="bg-gray-50 rounded-xl border border-gray-200 overflow-hidden">
+                      <summary className="px-6 py-4 font-medium text-gray-700 cursor-pointer hover:bg-gray-100">
+                        View Raw JSON Data
+                      </summary>
+                      <pre className="p-6 text-xs text-gray-600 overflow-x-auto max-h-64 bg-gray-100">
+                        {JSON.stringify(selectedProfile.data, null, 2)}
+                      </pre>
+                    </details>
+                  </>
+                )}
+
+                {selectedProfile.status === 'failed' && selectedProfile.error && (
+                  <div className="bg-red-50 border border-red-200 rounded-xl p-6">
+                    <div className="flex items-start gap-3">
+                      <XCircle className="w-6 h-6 text-red-500 flex-shrink-0" />
+                      <div>
+                        <h3 className="font-bold text-red-800 mb-1">Error</h3>
+                        <p className="text-red-700">{selectedProfile.error}</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Settings View */}
+        {view === 'settings' && (
+          <div className="max-w-2xl mx-auto">
+            <div className="bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden">
+              <div className="bg-gradient-to-r from-blue-600 to-purple-600 px-8 py-6">
+                <h2 className="text-2xl font-bold text-white mb-2">Settings</h2>
+                <p className="text-blue-100">Configure your automation</p>
+              </div>
+
+              <div className="p-8 space-y-6">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Webhook URL</label>
+                  <input
+                    type="text"
+                    value={webhookUrl}
+                    onChange={(e) => setWebhookUrl(e.target.value)}
+                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+
+                <div className="space-y-3">
+                  <h3 className="font-semibold text-gray-900">Data Management</h3>
+                  <button
+                    onClick={() => {
+                      if (window.confirm('Clear all profile data?')) {
+                        localStorage.removeItem('employer_profiles_v2');
+                        setProfiles([]);
+                      }
+                    }}
+                    className="w-full px-4 py-3 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 text-sm font-medium text-left"
+                  >
+                    Clear All Data
+                  </button>
+                </div>
+
+                <button onClick={() => setView('dashboard')} className="w-full bg-gray-100 text-gray-700 py-2 rounded-lg hover:bg-gray-200">
+                  Back to Dashboard
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </main>
     </div>
   );
 }
