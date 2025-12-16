@@ -1,0 +1,633 @@
+{
+  "name": "Employer Profile Automation - Clean",
+  "flow": [
+    {
+      "id": 11,
+      "module": "gateway:CustomWebHook",
+      "version": 1,
+      "parameters": {
+        "hook": 3702934,
+        "maxResults": 1
+      },
+      "mapper": {},
+      "metadata": {
+        "designer": {
+          "x": 0,
+          "y": 0
+        },
+        "restore": {
+          "parameters": {
+            "hook": {
+              "data": {
+                "editable": "true"
+              },
+              "label": "Employer Profile"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "hook",
+            "type": "hook:gateway-webhook",
+            "label": "Webhook",
+            "required": true
+          },
+          {
+            "name": "maxResults",
+            "type": "number",
+            "label": "Maximum number of results"
+          }
+        ],
+        "interface": [
+          {
+            "name": "website",
+            "type": "text"
+          },
+          {
+            "name": "timestamp",
+            "type": "text"
+          }
+        ]
+      }
+    },
+    {
+      "id": 13,
+      "module": "util:SetVariable2",
+      "version": 1,
+      "parameters": {},
+      "mapper": {
+        "name": "norm_url",
+        "scope": "roundtrip",
+        "value": "{{replace(11.website; \"\"\"/$\"\"\"; \"\")}}"
+      },
+      "metadata": {
+        "designer": {
+          "x": 300,
+          "y": 0
+        },
+        "restore": {
+          "expect": {
+            "scope": {
+              "label": "One cycle"
+            }
+          }
+        },
+        "expect": [
+          {
+            "name": "name",
+            "type": "text",
+            "label": "Variable name",
+            "required": true
+          },
+          {
+            "name": "scope",
+            "type": "select",
+            "label": "Variable lifetime",
+            "required": true,
+            "validate": {
+              "enum": [
+                "roundtrip",
+                "execution"
+              ]
+            }
+          },
+          {
+            "name": "value",
+            "type": "any",
+            "label": "Variable value"
+          }
+        ],
+        "interface": [
+          {
+            "name": "norm_url",
+            "type": "any",
+            "label": "norm_url"
+          }
+        ]
+      }
+    },
+    {
+      "id": 88,
+      "module": "util:SetVariable2",
+      "version": 1,
+      "parameters": {},
+      "mapper": {
+        "name": "brand_domain",
+        "scope": "roundtrip",
+        "value": "{{get(split(replace(replace(13.norm_url; \"https://\"; \"\"); \"http://\"; \"\"); \"/\"); 1)}}"
+      },
+      "metadata": {
+        "designer": {
+          "x": 600,
+          "y": 0
+        },
+        "restore": {
+          "expect": {
+            "scope": {
+              "label": "One cycle"
+            }
+          }
+        },
+        "expect": [
+          {
+            "name": "name",
+            "type": "text",
+            "label": "Variable name",
+            "required": true
+          },
+          {
+            "name": "scope",
+            "type": "select",
+            "label": "Variable lifetime",
+            "required": true,
+            "validate": {
+              "enum": [
+                "roundtrip",
+                "execution"
+              ]
+            }
+          },
+          {
+            "name": "value",
+            "type": "any",
+            "label": "Variable value"
+          }
+        ],
+        "interface": [
+          {
+            "name": "brand_domain",
+            "type": "any",
+            "label": "brand_domain"
+          }
+        ]
+      }
+    },
+    {
+      "id": 25,
+      "module": "google-drive:createAFolder",
+      "version": 4,
+      "parameters": {
+        "__IMTCONN__": 7740843
+      },
+      "mapper": {
+        "name": "Profil {{11.website}} {{11.timestamp}}",
+        "role": "writer",
+        "type": "user",
+        "email": "rehman.shoj@gmail.com",
+        "shared": true,
+        "folderId": "/16PlMrkdgJGnZ0CjLufKHOmd1OzeJLI93",
+        "destination": "drive"
+      },
+      "metadata": {
+        "designer": {
+          "x": 900,
+          "y": 0
+        },
+        "restore": {
+          "expect": {
+            "role": {
+              "mode": "edit"
+            },
+            "type": {
+              "mode": "edit"
+            },
+            "folderId": {
+              "mode": "edit",
+              "path": []
+            },
+            "destination": {
+              "label": "My Drive"
+            }
+          },
+          "parameters": {
+            "__IMTCONN__": {
+              "data": {
+                "scoped": "true",
+                "connection": "google-restricted"
+              },
+              "label": "ki koordinator (ki.koordinator@recruiting-now.de)"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "__IMTCONN__",
+            "type": "account:google-restricted",
+            "label": "Connection",
+            "required": true
+          }
+        ],
+        "expect": [
+          {
+            "name": "destination",
+            "type": "select",
+            "label": "New Drive Location",
+            "required": true,
+            "validate": {
+              "enum": [
+                "drive",
+                "share",
+                "team"
+              ]
+            }
+          },
+          {
+            "name": "folderId",
+            "type": "folder",
+            "label": "New Folder Location",
+            "required": true
+          },
+          {
+            "name": "name",
+            "type": "text",
+            "label": "New Folder's Name"
+          },
+          {
+            "name": "shared",
+            "type": "boolean",
+            "label": "Share Folder",
+            "required": true
+          },
+          {
+            "name": "role",
+            "type": "select",
+            "label": "Role",
+            "required": true,
+            "validate": {
+              "enum": [
+                "owner",
+                "writer",
+                "commenter",
+                "reader"
+              ]
+            }
+          },
+          {
+            "name": "type",
+            "type": "select",
+            "label": "Type",
+            "required": true,
+            "validate": {
+              "enum": [
+                "user",
+                "group",
+                "domain",
+                "anyone"
+              ]
+            }
+          },
+          {
+            "name": "email",
+            "type": "email",
+            "label": "User's Email",
+            "required": true
+          }
+        ]
+      }
+    },
+    {
+      "id": 87,
+      "module": "http:MakeRequest",
+      "version": 4,
+      "parameters": {
+        "authenticationType": "noAuth",
+        "tlsType": "",
+        "proxyKeychain": ""
+      },
+      "mapper": {
+        "url": "https://api.brandfetch.io/v2/brands/{{88.brand_domain}}",
+        "method": "get",
+        "headers": [
+          {
+            "name": "Authorization",
+            "value": "Bearer rntRA0ixB5ftNaas08Fig94MEUV9WIYRIerZVmPUy_EExmuHQ6xRELbnS4JFlPpOo9GozQ6crcYYUA5yIif0Jw"
+          }
+        ],
+        "parseResponse": true,
+        "stopOnHttpError": true,
+        "allowRedirects": true,
+        "shareCookies": true,
+        "requestCompressedContent": true
+      },
+      "metadata": {
+        "designer": {
+          "x": 1200,
+          "y": 0
+        },
+        "restore": {
+          "parameters": {
+            "authenticationType": {
+              "label": "No authentication"
+            },
+            "tlsType": {
+              "collapsed": true,
+              "label": "Empty"
+            },
+            "proxyKeychain": {
+              "collapsed": true,
+              "label": "Choose a key"
+            }
+          },
+          "expect": {
+            "method": {
+              "mode": "chose",
+              "label": "GET"
+            },
+            "headers": {
+              "mode": "chose",
+              "items": [
+                null
+              ]
+            },
+            "parseResponse": {
+              "mode": "chose"
+            },
+            "stopOnHttpError": {
+              "mode": "chose"
+            },
+            "allowRedirects": {
+              "mode": "chose"
+            },
+            "shareCookies": {
+              "mode": "chose"
+            },
+            "requestCompressedContent": {
+              "mode": "chose"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "authenticationType",
+            "type": "select",
+            "label": "Authentication type",
+            "required": true,
+            "validate": {
+              "enum": [
+                "noAuth",
+                "apiKey",
+                "basicAuth",
+                "oAuth"
+              ]
+            }
+          },
+          {
+            "name": "tlsType",
+            "type": "select",
+            "label": "Transport layer security (TLS)",
+            "validate": {
+              "enum": [
+                "mTls",
+                "tls"
+              ]
+            }
+          },
+          {
+            "name": "proxyKeychain",
+            "type": "keychain:proxy",
+            "label": "Proxy"
+          }
+        ],
+        "expect": [
+          {
+            "name": "url",
+            "type": "url",
+            "label": "URL",
+            "required": true
+          },
+          {
+            "name": "method",
+            "type": "select",
+            "label": "Method",
+            "required": true,
+            "validate": {
+              "enum": [
+                "get",
+                "head",
+                "post",
+                "put",
+                "patch",
+                "delete",
+                "options"
+              ]
+            }
+          },
+          {
+            "name": "headers",
+            "type": "array",
+            "label": "Headers"
+          },
+          {
+            "name": "parseResponse",
+            "type": "boolean",
+            "label": "Parse response",
+            "required": true
+          },
+          {
+            "name": "stopOnHttpError",
+            "type": "boolean",
+            "label": "Return error if HTTP request fails",
+            "required": true
+          },
+          {
+            "name": "allowRedirects",
+            "type": "boolean",
+            "label": "Allow redirects",
+            "required": true
+          },
+          {
+            "name": "shareCookies",
+            "type": "boolean",
+            "label": "Share cookies with other HTTP modules",
+            "required": true
+          },
+          {
+            "name": "requestCompressedContent",
+            "type": "boolean",
+            "label": "Request compressed content",
+            "required": true
+          }
+        ],
+        "interface": [
+          {
+            "name": "data",
+            "label": "Data",
+            "type": "any"
+          },
+          {
+            "name": "statusCode",
+            "label": "Status Code",
+            "type": "number"
+          },
+          {
+            "name": "headers",
+            "label": "Headers",
+            "type": "collection"
+          }
+        ]
+      }
+    },
+    {
+      "id": 26,
+      "module": "google-docs:createADocument",
+      "version": 1,
+      "parameters": {
+        "__IMTCONN__": 10941496
+      },
+      "mapper": {
+        "name": "Arbeitgeberprofil {{88.brand_domain}}",
+        "footer": false,
+        "header": false,
+        "content": "═══════════════════════════════════════════════════════════════\n                    ARBEITGEBERPROFIL\n═══════════════════════════════════════════════════════════════\n\n🏢 UNTERNEHMEN\n───────────────────────────────────────────────────────────────\nDomain:        {{88.brand_domain}}\nName:          {{87.data.name}}\nBeschreibung:  {{87.data.description}}\n\n\n🎨 MARKENIDENTITÄT\n───────────────────────────────────────────────────────────────\n┌──────────────┬─────────────────────────────────────────────┐\n│ Feld         │ Wert                                        │\n├──────────────┼─────────────────────────────────────────────┤\n│ Claim        │ {{87.data.qualityScore}}                   │\n│ Industry     │ {{87.data.industry}}                       │\n│ Is NSFW      │ {{87.data.isNsfw}}                         │\n└──────────────┴─────────────────────────────────────────────┘\n\n\n🖼️ LOGOS\n───────────────────────────────────────────────────────────────\nPrimary Logo:  {{87.data.logos[1].formats[1].src}}\nIcon:          {{87.data.logos[2].formats[1].src}}\n\n\n🎨 FARBEN\n───────────────────────────────────────────────────────────────\n┌──────────────┬─────────────────────────────────────────────┐\n│ Typ          │ Hex Code                                    │\n├──────────────┼─────────────────────────────────────────────┤\n│ Primary      │ {{87.data.colors[1].hex}}                  │\n│ Secondary    │ {{87.data.colors[2].hex}}                  │\n│ Accent       │ {{87.data.colors[3].hex}}                  │\n└──────────────┴─────────────────────────────────────────────┘\n\n\n🔤 TYPOGRAFIE\n───────────────────────────────────────────────────────────────\n┌──────────────┬─────────────────────────────────────────────┐\n│ Typ          │ Schriftart                                  │\n├──────────────┼─────────────────────────────────────────────┤\n│ Title        │ {{87.data.fonts[1].name}}                  │\n│ Body         │ {{87.data.fonts[2].name}}                  │\n└──────────────┴─────────────────────────────────────────────┘\n\n\n🔗 SOZIALE MEDIEN\n───────────────────────────────────────────────────────────────\n┌──────────────┬─────────────────────────────────────────────┐\n│ Plattform    │ URL                                         │\n├──────────────┼─────────────────────────────────────────────┤\n│ LinkedIn     │ {{87.data.links[1].url}}                   │\n│ Twitter      │ {{87.data.links[2].url}}                   │\n│ Facebook     │ {{87.data.links[3].url}}                   │\n│ Instagram    │ {{87.data.links[4].url}}                   │\n└──────────────┴─────────────────────────────────────────────┘\n\n\n📊 QUALITÄT\n───────────────────────────────────────────────────────────────\nQuality Score: {{87.data.qualityScore}}\n\n═══════════════════════════════════════════════════════════════\n                    Erstellt am {{11.timestamp}}\n═══════════════════════════════════════════════════════════════",
+        "folderId": "{{25.id}}",
+        "destination": "drive"
+      },
+      "metadata": {
+        "designer": {
+          "x": 1500,
+          "y": 0
+        },
+        "restore": {
+          "expect": {
+            "folderId": {
+              "mode": "edit",
+              "path": []
+            },
+            "destination": {
+              "label": "My Drive"
+            }
+          },
+          "parameters": {
+            "__IMTCONN__": {
+              "data": {
+                "scoped": "true",
+                "connection": "google"
+              },
+              "label": "Recruiting Now KI Koordinator (ki.koordinator@recruiting-now.de)"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "__IMTCONN__",
+            "type": "account:google",
+            "label": "Connection",
+            "required": true
+          }
+        ],
+        "expect": [
+          {
+            "name": "name",
+            "type": "text",
+            "label": "Name",
+            "required": true
+          },
+          {
+            "name": "content",
+            "type": "text",
+            "label": "Content",
+            "required": true
+          },
+          {
+            "name": "destination",
+            "type": "select",
+            "label": "Choose a Drive",
+            "required": true,
+            "validate": {
+              "enum": [
+                "drive",
+                "share",
+                "team"
+              ]
+            }
+          },
+          {
+            "name": "header",
+            "type": "boolean",
+            "label": "Insert a Header",
+            "required": true
+          },
+          {
+            "name": "footer",
+            "type": "boolean",
+            "label": "Insert a Footer",
+            "required": true
+          },
+          {
+            "name": "folderId",
+            "type": "folder",
+            "label": "New Document's Location",
+            "required": true
+          }
+        ]
+      }
+    },
+    {
+      "id": 99,
+      "module": "gateway:WebhookRespond",
+      "version": 1,
+      "parameters": {},
+      "mapper": {
+        "status": "200",
+        "headers": [
+          {
+            "name": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "name": "Access-Control-Allow-Origin",
+            "value": "*"
+          }
+        ],
+        "body": "{\"success\": true, \"domain\": \"{{88.brand_domain}}\", \"name\": \"{{87.data.name}}\", \"description\": \"{{87.data.description}}\", \"folderUrl\": \"{{25.webViewLink}}\", \"docUrl\": \"{{26.alternateLink}}\", \"logos\": {{87.data.logos}}, \"colors\": {{87.data.colors}}, \"fonts\": {{87.data.fonts}}, \"links\": {{87.data.links}}, \"qualityScore\": {{87.data.qualityScore}}}"
+      },
+      "metadata": {
+        "designer": {
+          "x": 1800,
+          "y": 0
+        },
+        "restore": {},
+        "parameters": [],
+        "expect": [
+          {
+            "name": "status",
+            "type": "uinteger",
+            "label": "Status",
+            "required": true,
+            "validate": {
+              "min": 100
+            }
+          },
+          {
+            "name": "headers",
+            "type": "array",
+            "label": "Headers"
+          },
+          {
+            "name": "body",
+            "type": "any",
+            "label": "Body"
+          }
+        ]
+      }
+    }
+  ],
+  "metadata": {
+    "instant": true,
+    "version": 1,
+    "scenario": {
+      "roundtrips": 1,
+      "maxErrors": 3,
+      "autoCommit": true,
+      "autoCommitTriggerLast": true,
+      "sequential": false,
+      "confidential": false,
+      "dataloss": false,
+      "dlq": false
+    },
+    "designer": {
+      "orphans": []
+    },
+    "zone": "eu2.make.com"
+  }
+}
