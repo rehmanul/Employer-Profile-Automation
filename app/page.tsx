@@ -61,6 +61,8 @@ export default function EmployerProfilePro() {
   const [generating, setGenerating] = useState(false);
   const [progress, setProgress] = useState({ step: '', percent: 0 });
   const [webhookUrl, setWebhookUrl] = useState('https://hook.eu2.make.com/8xsf9sha1e3c3bdznz5sii2e9j10wpi5');
+  const [googleApiKey, setGoogleApiKey] = useState('');
+  const [googleCx, setGoogleCx] = useState('');
 
   // UI
   const [darkMode, setDarkMode] = useState(true);
@@ -74,6 +76,15 @@ export default function EmployerProfilePro() {
     if (stored) setProfiles(JSON.parse(stored));
     const theme = localStorage.getItem('theme');
     if (theme) setDarkMode(theme === 'dark');
+
+    const storedWebhook = localStorage.getItem('webhook_url');
+    if (storedWebhook) setWebhookUrl(storedWebhook);
+
+    const storedGoogleKey = localStorage.getItem('google_api_key');
+    if (storedGoogleKey) setGoogleApiKey(storedGoogleKey);
+
+    const storedGoogleCx = localStorage.getItem('google_cx');
+    if (storedGoogleCx) setGoogleCx(storedGoogleCx);
   }, []);
 
   // Save
@@ -135,22 +146,86 @@ export default function EmployerProfilePro() {
     }, 1200);
 
     try {
-      const response = await fetch(webhookUrl, {
+      // 1. Start Webhook Request
+      const webhookPromise = fetch(webhookUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ website: url, timestamp: new Date().toISOString() })
       });
 
+      // 2. Start Google Image Search (if configured)
+      let googleSearchPromise: Promise<Response> | null = null;
+      if (googleApiKey && googleCx) {
+        let query = url;
+        try {
+           const hostname = new URL(url).hostname;
+           query = hostname.replace('www.', '').split('.')[0];
+        } catch(e) {}
+
+        googleSearchPromise = fetch(`https://www.googleapis.com/customsearch/v1?key=${googleApiKey}&cx=${googleCx}&q=${encodeURIComponent(query + ' office team culture')}&searchType=image&num=5`);
+      }
+
+      // Wait for results
+      const [webhookResult, googleResult] = await Promise.allSettled([
+        webhookPromise.then(res => { if (!res.ok) throw new Error('Webhook failed'); return res.json(); }),
+        googleSearchPromise ? googleSearchPromise.then(res => { if (!res.ok) throw new Error('Google search failed'); return res.json(); }) : Promise.resolve(null)
+      ]);
+
       clearInterval(interval);
-      let data = {};
-      try { data = await response.json(); } catch { data = { success: true }; }
+
+      // Process Webhook Data
+      let data: any = {};
+      if (webhookResult.status === 'fulfilled') {
+         data = webhookResult.value;
+      } else {
+         console.error('Webhook error:', webhookResult.reason);
+         // If webhook fails, we might still want to show scraped data?
+         // But usually webhook contains critical data.
+         // We'll proceed with partial data if possible, or throw if critical.
+         // Existing behavior was to treat catch as failure.
+         // Let's assume if webhook fails, we at least have a basic profile if we have images?
+         // No, the profile structure relies on data.
+         // But let's init data with defaults.
+         data = { success: false, error: 'Webhook failed to return data' };
+      }
+
+
+      // Process Google Data
+      if (googleResult.status === 'fulfilled' && googleResult.value?.items) {
+          const googleImages = googleResult.value.items.map((item: any) => ({
+              formats: [{ src: item.link, format: 'original' }]
+          }));
+          data.images = [...(data.images || []), ...googleImages];
+      }
+
+      // Deduplicate images
+      if (data.images && data.images.length > 0) {
+          const uniqueImages = new Map();
+          data.images.forEach((img: any) => {
+             const src = img.formats?.[0]?.src;
+             if (src && !uniqueImages.has(src)) {
+                 uniqueImages.set(src, img);
+             }
+          });
+          data.images = Array.from(uniqueImages.values());
+      }
 
       const idx = updated.findIndex(p => p.id === newProfile.id);
-      updated[idx] = { ...newProfile, status: 'completed', data, completedAt: new Date().toISOString() };
+
+      // Determine final status
+      const status = webhookResult.status === 'fulfilled' ? 'completed' : 'failed';
+      const error = webhookResult.status === 'rejected' ? (webhookResult.reason?.message || 'Webhook failed') : undefined;
+
+      updated[idx] = { ...newProfile, status, data, error, completedAt: new Date().toISOString() };
       saveProfiles(updated);
       setUrl('');
-      setView('table');
-      showToast('success', 'Profile generated!');
+
+      if (status === 'completed') {
+        setView('table');
+        showToast('success', 'Profile generated with enhanced images!');
+      } else {
+        showToast('error', `Generation failed: ${error}`);
+      }
     } catch (err: any) {
       clearInterval(interval);
       const idx = updated.findIndex(p => p.id === newProfile.id);
@@ -1019,7 +1094,44 @@ export default function EmployerProfilePro() {
               <div className="p-6 space-y-6">
                 <div>
                   <label className={`block text-sm font-medium ${t.text} mb-2`}>Webhook URL</label>
-                  <input type="url" value={webhookUrl} onChange={e => setWebhookUrl(e.target.value)} className={`w-full px-4 py-3 ${t.input} border-2 rounded-xl focus:ring-2 focus:ring-violet-500/50`} />
+                  <input
+                    type="url"
+                    value={webhookUrl}
+                    onChange={e => {
+                      setWebhookUrl(e.target.value);
+                      localStorage.setItem('webhook_url', e.target.value);
+                    }}
+                    className={`w-full px-4 py-3 ${t.input} border-2 rounded-xl focus:ring-2 focus:ring-violet-500/50`}
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className={`block text-sm font-medium ${t.text} mb-2`}>Google Custom Search API Key (Optional)</label>
+                    <input
+                        type="password"
+                        value={googleApiKey}
+                        onChange={e => {
+                            setGoogleApiKey(e.target.value);
+                            localStorage.setItem('google_api_key', e.target.value);
+                        }}
+                        placeholder="AIza..."
+                        className={`w-full px-4 py-3 ${t.input} border-2 rounded-xl focus:ring-2 focus:ring-violet-500/50`}
+                    />
+                  </div>
+                  <div>
+                    <label className={`block text-sm font-medium ${t.text} mb-2`}>Search Engine ID (CX) (Optional)</label>
+                    <input
+                        type="text"
+                        value={googleCx}
+                        onChange={e => {
+                            setGoogleCx(e.target.value);
+                            localStorage.setItem('google_cx', e.target.value);
+                        }}
+                        placeholder="012345..."
+                        className={`w-full px-4 py-3 ${t.input} border-2 rounded-xl focus:ring-2 focus:ring-violet-500/50`}
+                    />
+                  </div>
                 </div>
 
                 <div>
