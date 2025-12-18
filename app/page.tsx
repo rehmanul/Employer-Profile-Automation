@@ -159,16 +159,30 @@ export default function EmployerProfilePro() {
         let query = url;
         try {
            const hostname = new URL(url).hostname;
-           query = hostname.replace('www.', '').split('.')[0];
+           // Extract main domain name (e.g. "stripe.com" -> "stripe")
+           const parts = hostname.split('.');
+           if (parts.length >= 2) {
+             query = parts[parts.length - 2]; // simple guess for SLD
+             if (query === 'co' || query === 'com' || query === 'net') query = parts[parts.length - 3] || parts[0];
+           } else {
+             query = hostname.replace('www.', '').split('.')[0];
+           }
         } catch(e) {}
 
+        console.log('Fetching Google Images for:', query);
         googleSearchPromise = fetch(`https://www.googleapis.com/customsearch/v1?key=${googleApiKey}&cx=${googleCx}&q=${encodeURIComponent(query + ' office team culture')}&searchType=image&num=5`);
       }
 
       // Wait for results
       const [webhookResult, googleResult] = await Promise.allSettled([
         webhookPromise.then(res => { if (!res.ok) throw new Error('Webhook failed'); return res.json(); }),
-        googleSearchPromise ? googleSearchPromise.then(res => { if (!res.ok) throw new Error('Google search failed'); return res.json(); }) : Promise.resolve(null)
+        googleSearchPromise ? googleSearchPromise.then(async res => {
+           if (!res.ok) {
+             const err = await res.text();
+             throw new Error(`Google search failed: ${res.status} ${err}`);
+           }
+           return res.json();
+        }) : Promise.resolve(null)
       ]);
 
       clearInterval(interval);
@@ -191,11 +205,19 @@ export default function EmployerProfilePro() {
 
 
       // Process Google Data
-      if (googleResult.status === 'fulfilled' && googleResult.value?.items) {
-          const googleImages = googleResult.value.items.map((item: any) => ({
-              formats: [{ src: item.link, format: 'original' }]
-          }));
-          data.images = [...(data.images || []), ...googleImages];
+      if (googleResult.status === 'fulfilled') {
+          if (googleResult.value?.items) {
+            const googleImages = googleResult.value.items.map((item: any) => ({
+                formats: [{ src: item.link, format: 'original' }]
+            }));
+            data.images = [...(data.images || []), ...googleImages];
+            console.log(`Added ${googleImages.length} images from Google`);
+          } else if (googleResult.value && !googleResult.value.items) {
+             console.log('Google Search returned no items:', googleResult.value);
+          }
+      } else if (googleResult.status === 'rejected') {
+          console.error('Google Search Error:', googleResult.reason);
+          showToast('error', 'Google Image Search failed. Check console.');
       }
 
       // Deduplicate images
