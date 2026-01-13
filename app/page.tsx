@@ -31,6 +31,7 @@ interface Profile {
     colors?: Array<{ hex: string; type: string; brightness: number }>;
     fonts?: Array<{ name: string; type: string }>;
     links?: Array<{ url: string; name: string }>;
+    jobAd?: string; // Generated Job Ad Text
   };
 }
 
@@ -58,6 +59,7 @@ export default function EmployerProfilePro() {
 
   // Form
   const [url, setUrl] = useState('');
+  const [jobTitle, setJobTitle] = useState('');
   const [generating, setGenerating] = useState(false);
   const [progress, setProgress] = useState({ step: '', percent: 0 });
   const [webhookUrl, setWebhookUrl] = useState('https://hook.eu2.make.com/8xsf9sha1e3c3bdznz5sii2e9j10wpi5');
@@ -146,14 +148,9 @@ export default function EmployerProfilePro() {
     }, 1200);
 
     try {
-      // 1. Start Webhook Request
-      const webhookPromise = fetch(webhookUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ website: url, timestamp: new Date().toISOString() })
-      });
-
-      // 2. Start Google Image Search (if configured)
+      // 1. Start Google Image Search (if configured)
+      // We fetch images first so we can pass them to the webhook!
+      let googleImages: any[] = [];
       let googleSearchPromise: Promise<Response> | null = null;
       if (googleApiKey && googleCx) {
         let query = url;
@@ -173,78 +170,85 @@ export default function EmployerProfilePro() {
         googleSearchPromise = fetch(`https://www.googleapis.com/customsearch/v1?key=${googleApiKey}&cx=${googleCx}&q=${encodeURIComponent(query + ' office team culture')}&searchType=image&num=5`);
       }
 
-      // Wait for results
-      const [webhookResult, googleResult] = await Promise.allSettled([
-        webhookPromise.then(res => { if (!res.ok) throw new Error('Webhook failed'); return res.json(); }),
-        googleSearchPromise ? googleSearchPromise.then(async res => {
-           if (!res.ok) {
-             const err = await res.text();
-             throw new Error(`Google search failed: ${res.status} ${err}`);
-           }
-           return res.json();
-        }) : Promise.resolve(null)
-      ]);
+      // Wait for Google Search results first
+      if (googleSearchPromise) {
+          try {
+            const res = await googleSearchPromise;
+            if (res.ok) {
+                const json = await res.json();
+                if (json?.items) {
+                    googleImages = json.items.map((item: any) => ({
+                        formats: [{ src: item.link, format: 'original' }]
+                    }));
+                    console.log(`Found ${googleImages.length} images from Google`);
+                }
+            } else {
+                console.error('Google Search Failed:', res.status, await res.text());
+            }
+          } catch (e) {
+              console.error('Google Search Error:', e);
+          }
+      }
+
+      // 2. Start Webhook Request (with images and jobTitle)
+      const webhookPromise = fetch(webhookUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            website: url,
+            timestamp: new Date().toISOString(),
+            images: googleImages,
+            jobTitle: jobTitle
+        })
+      });
+
+      const webhookResult = await webhookPromise;
+      if (!webhookResult.ok) throw new Error('Webhook failed');
+      const webhookData = await webhookResult.json();
 
       clearInterval(interval);
 
-      // Process Webhook Data
-      let data: any = {};
-      if (webhookResult.status === 'fulfilled') {
-         data = webhookResult.value;
-      } else {
-         console.error('Webhook error:', webhookResult.reason);
-         // If webhook fails, we might still want to show scraped data?
-         // But usually webhook contains critical data.
-         // We'll proceed with partial data if possible, or throw if critical.
-         // Existing behavior was to treat catch as failure.
-         // Let's assume if webhook fails, we at least have a basic profile if we have images?
-         // No, the profile structure relies on data.
-         // But let's init data with defaults.
-         data = { success: false, error: 'Webhook failed to return data' };
+      // Process Data
+      let data = webhookData;
+      // Ensure jobTitle is preserved from input if not returned
+      if (jobTitle && !data.jobTitle) {
+          data.jobTitle = jobTitle;
       }
 
+      // Merge images if webhook didn't return them but we have them locally (though now webhook should return them if we updated logic)
+      // Actually, let's ensure local images are added if webhook returns fewer/none, or just rely on webhook if it echoes them back.
+      // But since we just want to be safe:
+      const combinedImages = [...(data.images || []), ...googleImages];
 
-      // Process Google Data
-      if (googleResult.status === 'fulfilled') {
-          if (googleResult.value?.items) {
-            const googleImages = googleResult.value.items.map((item: any) => ({
-                formats: [{ src: item.link, format: 'original' }]
-            }));
-            data.images = [...(data.images || []), ...googleImages];
-            console.log(`Added ${googleImages.length} images from Google`);
-          } else if (googleResult.value && !googleResult.value.items) {
-             console.log('Google Search returned no items:', googleResult.value);
+      // Deduplicate
+      const uniqueImages = new Map();
+      combinedImages.forEach((img: any) => {
+          const src = img.formats?.[0]?.src;
+          if (src && !uniqueImages.has(src)) {
+                uniqueImages.set(src, img);
           }
-      } else if (googleResult.status === 'rejected') {
-          console.error('Google Search Error:', googleResult.reason);
-          showToast('error', 'Google Image Search failed. Check console.');
-      }
-
-      // Deduplicate images
-      if (data.images && data.images.length > 0) {
-          const uniqueImages = new Map();
-          data.images.forEach((img: any) => {
-             const src = img.formats?.[0]?.src;
-             if (src && !uniqueImages.has(src)) {
-                 uniqueImages.set(src, img);
-             }
-          });
-          data.images = Array.from(uniqueImages.values());
-      }
+      });
+      data.images = Array.from(uniqueImages.values());
 
       const idx = updated.findIndex(p => p.id === newProfile.id);
 
       // Determine final status
-      const status = webhookResult.status === 'fulfilled' ? 'completed' : 'failed';
-      const error = webhookResult.status === 'rejected' ? (webhookResult.reason?.message || 'Webhook failed') : undefined;
+      const status = 'completed';
+      const error = undefined;
 
       updated[idx] = { ...newProfile, status, data, error, completedAt: new Date().toISOString() };
       saveProfiles(updated);
       setUrl('');
+      setJobTitle('');
 
       if (status === 'completed') {
-        setView('table');
-        showToast('success', 'Profile generated with enhanced images!');
+        if (data.jobAd || jobTitle) {
+            setSelectedProfile(updated[idx]);
+            setView('profile');
+        } else {
+            setView('table');
+        }
+        showToast('success', 'Profile generated!');
       } else {
         showToast('error', `Generation failed: ${error}`);
       }
@@ -898,15 +902,28 @@ export default function EmployerProfilePro() {
                     type="url"
                     value={url}
                     onChange={e => setUrl(e.target.value)}
-                    onKeyDown={e => e.key === 'Enter' && !generating && generateProfile()}
                     placeholder="https://stripe.com"
                     disabled={generating}
                     className={`w-full px-4 py-3 ${t.input} border-2 rounded-xl focus:ring-2 focus:ring-violet-500/50 disabled:opacity-50`}
                   />
                 </div>
 
+                <div>
+                  <label className={`block text-sm font-medium ${t.text} mb-2`}>Job Title (Optional - for Sales Tool)</label>
+                  <input
+                    type="text"
+                    value={jobTitle}
+                    onChange={e => setJobTitle(e.target.value)}
+                    onKeyDown={e => e.key === 'Enter' && !generating && generateProfile()}
+                    placeholder="e.g. Sales Manager"
+                    disabled={generating}
+                    className={`w-full px-4 py-3 ${t.input} border-2 rounded-xl focus:ring-2 focus:ring-violet-500/50 disabled:opacity-50`}
+                  />
+                  <p className={`text-xs ${t.muted} mt-2`}>If provided, a job advertisement will be generated in addition to the profile.</p>
+                </div>
+
                 <button onClick={generateProfile} disabled={generating || !url.trim()} className="w-full bg-gradient-to-r from-violet-600 to-indigo-600 text-white py-3.5 rounded-xl font-semibold disabled:opacity-50 flex items-center justify-center gap-2 shadow-lg shadow-violet-600/25">
-                  {generating ? <><RefreshCw className="w-5 h-5 animate-spin" />Generating...</> : <><Zap className="w-5 h-5" />Generate Profile</>}
+                  {generating ? <><RefreshCw className="w-5 h-5 animate-spin" />Generating...</> : <><Zap className="w-5 h-5" />Generate Profile & Job</>}
                 </button>
 
                 {generating && (
@@ -969,8 +986,69 @@ export default function EmployerProfilePro() {
 
                 {selectedProfile.status === 'completed' && selectedProfile.data && (
                   <div className="space-y-4">
+                    {/* Job Ad Preview (Sales Tool) */}
+                    {selectedProfile.data.jobAd && (
+                      <div className="bg-white text-gray-900 rounded-xl overflow-hidden shadow-2xl border border-gray-200">
+                          {/* Job Header */}
+                          <div className="border-b border-gray-100 p-6 flex justify-between items-start">
+                              <div className="flex gap-4">
+                                  {selectedProfile.data.logos?.[0]?.formats?.[0]?.src && (
+                                      <img src={selectedProfile.data.logos[0].formats[0].src} className="w-16 h-16 object-contain" />
+                                  )}
+                                  <div>
+                                      <h2 className="text-2xl font-bold text-gray-900">
+                                          {(selectedProfile.data as any).jobTitle || 'Job Title'}
+                                      </h2>
+                                      <p className="text-gray-500">{selectedProfile.data.name}</p>
+                                  </div>
+                              </div>
+                              <button className="bg-blue-600 text-white px-6 py-2 rounded font-semibold hover:bg-blue-700">
+                                  Bewerben
+                              </button>
+                          </div>
+
+                          {/* Job Content */}
+                          <div className="p-8 space-y-8">
+                             {/* Render the raw text with newlines properly */}
+                             <div className="prose max-w-none whitespace-pre-line text-gray-700 leading-relaxed">
+                                {selectedProfile.data.jobAd}
+                             </div>
+
+                             {/* Images Gallery in Job Ad */}
+                             {selectedProfile.data.images && selectedProfile.data.images.length > 0 && (
+                                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-8">
+                                     {selectedProfile.data.images.slice(0, 4).map((img, i) => (
+                                         <div key={i} className="rounded-lg overflow-hidden h-32">
+                                            {img.formats?.[0]?.src && (
+                                                <img src={img.formats[0].src} className="w-full h-full object-cover" />
+                                            )}
+                                         </div>
+                                     ))}
+                                 </div>
+                             )}
+                          </div>
+
+                          {/* Order Form */}
+                          <div className="bg-gray-50 p-8 border-t border-gray-200">
+                              <h3 className="text-xl font-bold mb-4">Job-Anzeige veröffentlichen</h3>
+                              <p className="text-gray-600 mb-6">Gefällt Ihnen der Entwurf? Buchen Sie jetzt die Veröffentlichung.</p>
+
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                                  <input type="text" placeholder="Firmenname" className="p-3 border rounded-lg" />
+                                  <input type="text" placeholder="Ansprechpartner" className="p-3 border rounded-lg" />
+                                  <input type="email" placeholder="E-Mail für Rechnung" className="p-3 border rounded-lg" />
+                                  <input type="text" placeholder="Straße, Hausnummer" className="p-3 border rounded-lg" />
+                                  <input type="text" placeholder="PLZ, Ort" className="p-3 border rounded-lg" />
+                              </div>
+                              <button className="bg-green-600 text-white px-8 py-3 rounded-lg font-bold text-lg hover:bg-green-700 w-full md:w-auto" onClick={() => alert('Bestellung simuliert!')}>
+                                  Kostenpflichtig bestellen
+                              </button>
+                          </div>
+                      </div>
+                    )}
+
                     {/* Description */}
-                    {selectedProfile.data.description && (
+                    {selectedProfile.data.description && !selectedProfile.data.jobAd && (
                       <div className={`${darkMode ? 'bg-white/5' : 'bg-gray-50'} rounded-xl p-4`}>
                         <h3 className={`font-semibold ${t.text} mb-2 flex items-center gap-2`}>
                           <FileText className="w-4 h-4 text-violet-400" />Description
@@ -981,7 +1059,7 @@ export default function EmployerProfilePro() {
                     )}
 
                     {/* AI-Generated Employer Text */}
-                    {selectedProfile.data.employerText && (
+                    {selectedProfile.data.employerText && !selectedProfile.data.jobAd && (
                       <div className="bg-gradient-to-br from-violet-500/20 via-purple-500/15 to-pink-500/20 rounded-xl p-4 border border-violet-500/30">
                         <h3 className="font-semibold text-white mb-2 flex items-center gap-2">
                           <Zap className="w-4 h-4 text-violet-400" />
