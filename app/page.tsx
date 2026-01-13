@@ -6,8 +6,11 @@ import {
   RefreshCw, ExternalLink, FileText, Award, FolderOpen, X, Globe,
   CheckCircle, Clock, XCircle, Palette, Type, Link2, Upload, Database,
   Moon, Sun, Copy, Check, Zap, Activity, TrendingUp, ChevronDown, ChevronUp,
-  Filter, Table, ArrowUpDown, ArrowUp, ArrowDown, Calendar, Building2
+  Filter, Table, ArrowUpDown, ArrowUp, ArrowDown, Calendar, Building2,
+  ChevronLeft, ChevronRight, Maximize2
 } from 'lucide-react';
+
+type ImageItem = { formats?: Array<{ src: string; format: string }>; src?: string } | string;
 
 interface Profile {
   id: string;
@@ -27,7 +30,7 @@ interface Profile {
     docUrl?: string;
     qualityScore?: number;
     logos?: Array<{ type: string; formats: Array<{ src: string; format: string }> }>;
-    images?: Array<{ formats: Array<{ src: string; format: string }> }>;
+    images?: ImageItem[];
     colors?: Array<{ hex: string; type: string; brightness: number }>;
     fonts?: Array<{ name: string; type: string }>;
     links?: Array<{ url: string; name: string }>;
@@ -67,6 +70,8 @@ export default function EmployerProfilePro() {
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [copied, setCopied] = useState<string | null>(null);
   const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
+  const [galleryOpen, setGalleryOpen] = useState(false);
+  const [galleryIndex, setGalleryIndex] = useState(0);
 
   // Load data
   useEffect(() => {
@@ -102,13 +107,87 @@ export default function EmployerProfilePro() {
     showToast('success', 'Copied!');
   }, [showToast]);
 
+  const scrapeImages = useCallback(async (targetUrl: string) => {
+    try {
+      const response = await fetch('/api/scrape-images', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: targetUrl })
+      });
+      if (!response.ok) return [];
+      const payload = await response.json();
+      return Array.isArray(payload.images) ? payload.images.filter(Boolean) : [];
+    } catch {
+      return [];
+    }
+  }, []);
+
+  const formatFromUrl = useCallback((imageUrl: string) => {
+    const match = imageUrl.match(/\.(jpg|jpeg|png|webp|gif|avif)(?:$|[?#])/i);
+    return match ? match[1].toLowerCase() : 'image';
+  }, []);
+
+  const buildImagePayload = useCallback((urls: string[]) => {
+    return urls.map(url => ({
+      formats: [{ src: url, format: formatFromUrl(url) }]
+    }));
+  }, [formatFromUrl]);
+
+  const normalizeImages = useCallback((input: unknown, fallback: string[] = []) => {
+    const collected: ImageItem[] = [];
+    const addValue = (value: unknown) => {
+      if (!value) return;
+      if (Array.isArray(value)) {
+        value.forEach(addValue);
+        return;
+      }
+      if (typeof value === 'string') {
+        const trimmed = value.trim();
+        if (!trimmed) return;
+        if ((trimmed.startsWith('[') && trimmed.endsWith(']')) || (trimmed.startsWith('{') && trimmed.endsWith('}'))) {
+          try {
+            const parsed = JSON.parse(trimmed);
+            addValue(parsed);
+            return;
+          } catch {
+            collected.push(trimmed);
+            return;
+          }
+        }
+        collected.push(trimmed);
+        return;
+      }
+      if (typeof value === 'object') {
+        const candidate = value as { formats?: Array<{ src: string; format: string }>; src?: string };
+        if (candidate.formats || candidate.src) {
+          collected.push(candidate as ImageItem);
+        }
+      }
+    };
+
+    addValue(input);
+    fallback.forEach(addValue);
+
+    const seen = new Set<string>();
+    const unique: ImageItem[] = [];
+    collected.forEach(item => {
+      const src = typeof item === 'string' ? item : item.formats?.[0]?.src || item.src || '';
+      if (!src || seen.has(src)) return;
+      seen.add(src);
+      unique.push(item);
+    });
+
+    return unique;
+  }, []);
+
   // Generate
   const generateProfile = async () => {
-    if (!url.trim()) return;
+    const normalizedUrl = url.trim();
+    if (!normalizedUrl) return;
 
     const newProfile: Profile = {
       id: Date.now().toString(),
-      url: url.trim(),
+      url: normalizedUrl,
       status: 'processing',
       createdAt: new Date().toISOString()
     };
@@ -119,13 +198,14 @@ export default function EmployerProfilePro() {
     showToast('info', 'Starting generation...');
 
     const steps = [
-      { step: 'Connecting...', percent: 12 },
-      { step: 'Extracting domain...', percent: 25 },
-      { step: 'Creating folder...', percent: 38 },
-      { step: 'Fetching brand data...', percent: 52 },
-      { step: 'Processing logos...', percent: 68 },
-      { step: 'Extracting colors...', percent: 80 },
-      { step: 'Creating document...', percent: 92 },
+      { step: 'Connecting...', percent: 10 },
+      { step: 'Extracting domain...', percent: 20 },
+      { step: 'Scraping images...', percent: 35 },
+      { step: 'Creating folder...', percent: 50 },
+      { step: 'Fetching brand data...', percent: 65 },
+      { step: 'Processing logos...', percent: 78 },
+      { step: 'Extracting colors...', percent: 88 },
+      { step: 'Creating document...', percent: 95 },
       { step: 'Finalizing...', percent: 100 }
     ];
 
@@ -134,19 +214,31 @@ export default function EmployerProfilePro() {
       if (stepIdx < steps.length) { setProgress(steps[stepIdx]); stepIdx++; }
     }, 1200);
 
+    const scrapedImages = await scrapeImages(normalizedUrl);
+    const payload: Record<string, unknown> = {
+      website: normalizedUrl,
+      timestamp: new Date().toISOString()
+    };
+    if (scrapedImages.length > 0) payload.images = buildImagePayload(scrapedImages);
+
     try {
       const response = await fetch(webhookUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ website: url, timestamp: new Date().toISOString() })
+        body: JSON.stringify(payload)
       });
 
       clearInterval(interval);
       let data = {};
       try { data = await response.json(); } catch { data = { success: true }; }
 
+      const normalizedData = {
+        ...(typeof data === 'object' && data ? data : {}),
+        images: normalizeImages((data as { images?: unknown }).images, scrapedImages)
+      };
+
       const idx = updated.findIndex(p => p.id === newProfile.id);
-      updated[idx] = { ...newProfile, status: 'completed', data, completedAt: new Date().toISOString() };
+      updated[idx] = { ...newProfile, status: 'completed', data: normalizedData, completedAt: new Date().toISOString() };
       saveProfiles(updated);
       setUrl('');
       setView('table');
@@ -319,6 +411,11 @@ export default function EmployerProfilePro() {
   };
 
   // Helpers
+  const getImageSrc = useCallback((image: ImageItem) => {
+    if (!image) return '';
+    if (typeof image === 'string') return image;
+    return image.formats?.[0]?.src || image.src || '';
+  }, []);
   const getInitials = (url: string) => { try { return new URL(url).hostname.substring(0, 2).toUpperCase(); } catch { return '??'; } };
   const getPlatformEmoji = (url: string) => {
     if (url.includes('linkedin')) return '💼';
@@ -328,6 +425,51 @@ export default function EmployerProfilePro() {
     if (url.includes('youtube')) return '📺';
     return '🔗';
   };
+
+  const imageUrls = useMemo(() => {
+    if (!selectedProfile?.data?.images) return [];
+    return selectedProfile.data.images.map(getImageSrc).filter(Boolean);
+  }, [selectedProfile, getImageSrc]);
+  const heroImage = imageUrls[0] || '';
+
+  const openGallery = useCallback((index: number) => {
+    setGalleryIndex(index);
+    setGalleryOpen(true);
+  }, []);
+
+  const closeGallery = useCallback(() => {
+    setGalleryOpen(false);
+  }, []);
+
+  const showNext = useCallback(() => {
+    setGalleryIndex(current => (imageUrls.length ? (current + 1) % imageUrls.length : 0));
+  }, [imageUrls.length]);
+
+  const showPrev = useCallback(() => {
+    setGalleryIndex(current => (imageUrls.length ? (current - 1 + imageUrls.length) % imageUrls.length : 0));
+  }, [imageUrls.length]);
+
+  useEffect(() => {
+    setGalleryIndex(0);
+    setGalleryOpen(false);
+  }, [selectedProfile?.id]);
+
+  useEffect(() => {
+    if (!galleryOpen) return;
+    const handleKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') closeGallery();
+      if (event.key === 'ArrowRight') showNext();
+      if (event.key === 'ArrowLeft') showPrev();
+    };
+    window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
+  }, [galleryOpen, closeGallery, showNext, showPrev]);
+
+  useEffect(() => {
+    if (galleryIndex >= imageUrls.length) {
+      setGalleryIndex(0);
+    }
+  }, [galleryIndex, imageUrls.length]);
 
   // Theme classes
   const t = {
@@ -635,6 +777,29 @@ export default function EmployerProfilePro() {
                 </div>
               </div>
             </div>
+            {galleryOpen && imageUrls.length > 0 && (
+              <div className="fixed inset-0 z-[120] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4" onClick={closeGallery}>
+                <div className="relative w-full max-w-5xl" onClick={e => e.stopPropagation()}>
+                  <img src={imageUrls[galleryIndex]} alt="" className="w-full max-h-[80vh] object-contain rounded-2xl shadow-2xl shadow-black/60" />
+                  <button onClick={closeGallery} className="absolute top-4 right-4 p-2 rounded-full bg-black/60 text-white/80 hover:text-white">
+                    <X className="w-5 h-5" />
+                  </button>
+                  {imageUrls.length > 1 && (
+                    <>
+                      <button onClick={showPrev} className="absolute left-3 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/60 text-white/80 hover:text-white">
+                        <ChevronLeft className="w-6 h-6" />
+                      </button>
+                      <button onClick={showNext} className="absolute right-3 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/60 text-white/80 hover:text-white">
+                        <ChevronRight className="w-6 h-6" />
+                      </button>
+                    </>
+                  )}
+                  <div className="mt-3 text-center text-sm text-white/70">
+                    {galleryIndex + 1} / {imageUrls.length}
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -835,23 +1000,43 @@ export default function EmployerProfilePro() {
           <div className="w-full">
             <div className={`${t.card} border rounded-2xl backdrop-blur overflow-hidden shadow-2xl`}>
               {/* Header */}
-              <div className="bg-gradient-to-r from-violet-600 to-indigo-600 px-6 py-6 flex justify-between">
-                <div className="flex items-center gap-4">
-                  {selectedProfile.data?.logos?.[0]?.formats?.[0]?.src ? (
-                    <img src={selectedProfile.data.logos[0].formats[0].src} alt="" className="w-14 h-14 rounded-xl bg-white/20 object-contain p-2" />
-                  ) : (
-                    <div className="w-14 h-14 bg-white/20 rounded-xl flex items-center justify-center text-white font-bold text-lg">
-                      {getInitials(selectedProfile.url)}
-                    </div>
-                  )}
-                  <div>
-                    <h2 className="text-xl font-bold text-white">{selectedProfile.data?.name || selectedProfile.url}</h2>
-                    <p className="text-violet-200 text-sm">{selectedProfile.data?.domain || selectedProfile.url}</p>
+              <div className="relative overflow-hidden">
+                {heroImage ? (
+                  <div className="absolute inset-0">
+                    <img src={heroImage} alt="" className="h-full w-full object-cover" />
+                    <div className="absolute inset-0 bg-gradient-to-r from-slate-950/95 via-slate-900/85 to-violet-900/70" />
+                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(59,130,246,0.25),_transparent_55%)]" />
                   </div>
+                ) : (
+                  <div className="absolute inset-0 bg-gradient-to-r from-violet-700 via-indigo-600 to-slate-900" />
+                )}
+                <div className="relative px-6 py-6 flex flex-wrap items-center justify-between gap-4">
+                  <div className="flex items-center gap-4">
+                    {selectedProfile.data?.logos?.[0]?.formats?.[0]?.src ? (
+                      <img src={selectedProfile.data.logos[0].formats[0].src} alt="" className="w-14 h-14 rounded-xl bg-white/20 object-contain p-2 shadow-lg shadow-black/20" />
+                    ) : (
+                      <div className="w-14 h-14 bg-white/20 rounded-xl flex items-center justify-center text-white font-bold text-lg">
+                        {getInitials(selectedProfile.url)}
+                      </div>
+                    )}
+                    <div>
+                      <h2 className="text-xl font-bold text-white">{selectedProfile.data?.name || selectedProfile.url}</h2>
+                      <p className="text-violet-200 text-sm">{selectedProfile.data?.domain || selectedProfile.url}</p>
+                      <div className="flex flex-wrap gap-2 mt-2 text-xs text-white/70">
+                        <span className="px-2 py-1 rounded-full bg-white/10">{imageUrls.length} images</span>
+                        <span className="px-2 py-1 rounded-full bg-white/10">{selectedProfile.data?.logos?.length ?? 0} logos</span>
+                        {selectedProfile.data?.qualityScore && (
+                          <span className="px-2 py-1 rounded-full bg-emerald-500/20 text-emerald-200">
+                            {Math.round((selectedProfile.data.qualityScore ?? 0) * 100)}% score
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                  <button onClick={() => { setView('table'); setSelectedProfile(null); }} className="text-white/80 hover:text-white p-2 hover:bg-white/10 rounded-lg">
+                    <X className="w-6 h-6" />
+                  </button>
                 </div>
-                <button onClick={() => { setView('table'); setSelectedProfile(null); }} className="text-white/80 hover:text-white p-2 hover:bg-white/10 rounded-lg">
-                  <X className="w-6 h-6" />
-                </button>
               </div>
 
               <div className="p-6 space-y-5">
@@ -911,15 +1096,40 @@ export default function EmployerProfilePro() {
                     )}
 
                     {/* Images */}
-                    {(selectedProfile.data.images?.length ?? 0) > 0 && (
-                      <div className={`${darkMode ? 'bg-white/5' : 'bg-gray-50'} rounded-xl p-4`}>
-                        <h3 className={`font-semibold ${t.text} mb-3 flex items-center gap-2`}><Globe className="w-4 h-4 text-cyan-400" />Images ({selectedProfile.data.images?.length ?? 0})</h3>
-                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
-                          {selectedProfile.data.images?.map((img, i) => (
-                            <div key={i} className={`${darkMode ? 'bg-white/10' : 'bg-white'} rounded-lg p-2 border ${t.tableBorder} overflow-hidden`}>
-                              {img.formats?.[0]?.src && <img src={img.formats[0].src} alt={`Image ${i + 1}`} className="w-full h-24 object-cover rounded" />}
-                            </div>
-                          ))}
+                    {imageUrls.length > 0 && (
+                      <div className={`${darkMode ? 'bg-white/5' : 'bg-gray-50'} rounded-2xl p-4 md:p-5 border ${t.tableBorder}`}>
+                        <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+                          <h3 className={`font-semibold ${t.text} flex items-center gap-2`}>
+                            <Globe className="w-4 h-4 text-cyan-400" />Image Gallery ({imageUrls.length})
+                          </h3>
+                          <button onClick={() => openGallery(0)} className="px-3 py-1.5 rounded-lg text-sm font-medium bg-white/10 text-white/80 hover:text-white hover:bg-white/20 flex items-center gap-2">
+                            <Maximize2 className="w-4 h-4" />View all
+                          </button>
+                        </div>
+                        <div className="grid grid-cols-2 md:grid-cols-6 auto-rows-[110px] md:auto-rows-[140px] lg:auto-rows-[160px] gap-3">
+                          {imageUrls.map((src, i) => {
+                            const layoutClass = i === 0
+                              ? 'md:col-span-4 md:row-span-2'
+                              : i === 1
+                                ? 'md:col-span-2 md:row-span-2'
+                                : 'md:col-span-2 md:row-span-1';
+                            return (
+                              <button
+                                key={src}
+                                onClick={() => openGallery(i)}
+                                className={`relative rounded-xl overflow-hidden group border ${t.tableBorder} ${darkMode ? 'bg-white/10' : 'bg-white'} ${layoutClass}`}
+                              >
+                                <img src={src} alt={`Image ${i + 1}`} className="h-full w-full object-cover transition duration-500 group-hover:scale-105" />
+                                <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-70" />
+                                <div className="absolute bottom-2 left-2 text-xs text-white/80 bg-black/40 px-2 py-1 rounded-md">
+                                  #{i + 1}
+                                </div>
+                                <div className="absolute top-2 right-2 w-8 h-8 rounded-full bg-black/40 text-white/80 flex items-center justify-center opacity-0 group-hover:opacity-100 transition">
+                                  <Maximize2 className="w-4 h-4" />
+                                </div>
+                              </button>
+                            );
+                          })}
                         </div>
                       </div>
                     )}

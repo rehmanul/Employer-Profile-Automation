@@ -23,6 +23,10 @@
                     {
                         "name": "timestamp",
                         "type": "text"
+                    },
+                    {
+                        "name": "images",
+                        "type": "array"
                     }
                 ]
             }
@@ -172,11 +176,21 @@
             "mapper": {
                 "url": "{{101.formats[1].src}}",
                 "method": "get",
+                "headers": [
+                    {
+                        "name": "User-Agent",
+                        "value": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
+                    },
+                    {
+                        "name": "Accept",
+                        "value": "image/avif,image/webp,image/*,*/*;q=0.8"
+                    }
+                ],
                 "parseResponse": false,
                 "stopOnHttpError": false,
                 "allowRedirects": true,
                 "shareCookies": false,
-                "requestCompressedContent": false
+                "requestCompressedContent": true
             },
             "metadata": {
                 "designer": {
@@ -231,14 +245,14 @@
             "version": 1,
             "parameters": {},
             "mapper": {
-                "array": "{{slice(87.data.images; 0; 5)}}"
+                "array": "{{slice(ifempty(11.images; 87.data.images); 1; 10)}}"
             },
             "metadata": {
                 "designer": {
                     "x": 2700,
                     "y": 150
                 },
-                "note": "Iterate over images (max 5)"
+                "note": "Iterate over images (max 10)"
             }
         },
         {
@@ -249,13 +263,23 @@
                 "authenticationType": "noAuth"
             },
             "mapper": {
-                "url": "{{107.formats[1].src}}",
+                "url": "{{ifempty(107.formats[1].src; 107.value)}}",
                 "method": "get",
+                "headers": [
+                    {
+                        "name": "User-Agent",
+                        "value": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
+                    },
+                    {
+                        "name": "Accept",
+                        "value": "image/avif,image/webp,image/*,*/*;q=0.8"
+                    }
+                ],
                 "parseResponse": false,
                 "stopOnHttpError": false,
                 "allowRedirects": true,
                 "shareCookies": false,
-                "requestCompressedContent": false
+                "requestCompressedContent": true
             },
             "metadata": {
                 "designer": {
@@ -313,7 +337,7 @@
             },
             "mapper": {
                 "name": "Arbeitgeberprofil {{88.brand_domain}}",
-                "content": "═══════════════════════════════════════════════════════════════\r\n                    ARBEITGEBERPROFIL\r\n═══════════════════════════════════════════════════════════════\r\n\r\n🏢 UNTERNEHMEN\r\n───────────────────────────────────────────────────────────────\r\nDomain:              {{88.brand_domain}}\r\nName:                {{87.data.name}}\r\n\r\n📝 ARBEITGEBERBESCHREIBUNG (KI-generiert)\r\n───────────────────────────────────────────────────────────────\r\n{{100.result}}\r\n\r\n📋 VOLLBESCHREIBUNG\r\n───────────────────────────────────────────────────────────────\r\n{{87.data.description}}\r\n\r\n✅ ERKANNTE BENEFITS\r\n───────────────────────────────────────────────────────────────\r\n{{106.matched_benefits}}\r\n\r\n🎨 MARKENIDENTITÄT\r\n───────────────────────────────────────────────────────────────\r\nQuality Score:       {{87.data.qualityScore}}\r\n\r\n🖼️ LOGOS (hochgeladen in Ordner)\r\n───────────────────────────────────────────────────────────────\r\nPrimary:             {{87.data.logos[1].formats[1].src}}\r\n\r\n📷 BILDER (max. 5, hochgeladen in Ordner)\r\n───────────────────────────────────────────────────────────────\r\n{{87.data.images[1].formats[1].src}}\r\n{{87.data.images[2].formats[1].src}}\r\n{{87.data.images[3].formats[1].src}}\r\n{{87.data.images[4].formats[1].src}}\r\n{{87.data.images[5].formats[1].src}}\r\n\r\n🎨 FARBEN\r\n───────────────────────────────────────────────────────────────\r\nPrimary:             {{87.data.colors[1].hex}}\r\nSecondary:           {{87.data.colors[2].hex}}\r\nAccent:              {{87.data.colors[3].hex}}\r\n\r\n🔤 TYPOGRAFIE\r\n───────────────────────────────────────────────────────────────\r\nTitle Font:          {{87.data.fonts[1].name}}\r\nBody Font:           {{87.data.fonts[2].name}}\r\n\r\n🔗 SOZIALE MEDIEN\r\n───────────────────────────────────────────────────────────────\r\n{{87.data.links[1].name}}: {{87.data.links[1].url}}\r\n{{87.data.links[2].name}}: {{87.data.links[2].url}}\r\n{{87.data.links[3].name}}: {{87.data.links[3].url}}\r\n\r\n═══════════════════════════════════════════════════════════════\r\n                 Erstellt am {{11.timestamp}}\r\n═══════════════════════════════════════════════════════════════",
+                "content": "═══════════════════════════════════════════════════════════════\r\n                    ARBEITGEBERPROFIL\r\n═══════════════════════════════════════════════════════════════\r\n\r\n🏢 UNTERNEHMEN\r\n───────────────────────────────────────────────────────────────\r\nDomain:              {{88.brand_domain}}\r\nName:                {{87.data.name}}\r\n\r\n📝 ARBEITGEBERBESCHREIBUNG (KI-generiert)\r\n───────────────────────────────────────────────────────────────\r\n{{100.result}}\r\n\r\n📋 VOLLBESCHREIBUNG\r\n───────────────────────────────────────────────────────────────\r\n{{87.data.description}}\r\n\r\n✅ ERKANNTE BENEFITS\r\n───────────────────────────────────────────────────────────────\r\n{{106.matched_benefits}}\r\n\r\n🎨 MARKENIDENTITÄT\r\n───────────────────────────────────────────────────────────────\r\nQuality Score:       {{87.data.qualityScore}}\r\n\r\n🖼️ LOGOS (hochgeladen in Ordner)\r\n───────────────────────────────────────────────────────────────\r\nPrimary:             {{87.data.logos[1].formats[1].src}}\r\n\r\n📷 BILDER (max. 10, hochgeladen in Ordner)\r\n───────────────────────────────────────────────────────────────\r\n{{ifempty(11.images[1]; 87.data.images[1].formats[1].src)}}\r\n{{ifempty(11.images[2]; 87.data.images[2].formats[1].src)}}\r\n{{ifempty(11.images[3]; 87.data.images[3].formats[1].src)}}\r\n{{ifempty(11.images[4]; 87.data.images[4].formats[1].src)}}\r\n{{ifempty(11.images[5]; 87.data.images[5].formats[1].src)}}\r\n{{ifempty(11.images[6]; 87.data.images[6].formats[1].src)}}\r\n{{ifempty(11.images[7]; 87.data.images[7].formats[1].src)}}\r\n{{ifempty(11.images[8]; 87.data.images[8].formats[1].src)}}\r\n{{ifempty(11.images[9]; 87.data.images[9].formats[1].src)}}\r\n{{ifempty(11.images[10]; 87.data.images[10].formats[1].src)}}\r\n\r\n🎨 FARBEN\r\n───────────────────────────────────────────────────────────────\r\nPrimary:             {{87.data.colors[1].hex}}\r\nSecondary:           {{87.data.colors[2].hex}}\r\nAccent:              {{87.data.colors[3].hex}}\r\n\r\n🔤 TYPOGRAFIE\r\n───────────────────────────────────────────────────────────────\r\nTitle Font:          {{87.data.fonts[1].name}}\r\nBody Font:           {{87.data.fonts[2].name}}\r\n\r\n🔗 SOZIALE MEDIEN\r\n───────────────────────────────────────────────────────────────\r\n{{87.data.links[1].name}}: {{87.data.links[1].url}}\r\n{{87.data.links[2].name}}: {{87.data.links[2].url}}\r\n{{87.data.links[3].name}}: {{87.data.links[3].url}}\r\n\r\n═══════════════════════════════════════════════════════════════\r\n                 Erstellt am {{11.timestamp}}\r\n═══════════════════════════════════════════════════════════════",
                 "destination": "drive",
                 "header": false,
                 "footer": false,
@@ -333,7 +357,7 @@
             "parameters": {},
             "mapper": {
                 "status": "200",
-                "body": "{\r\n  \"success\": true,\r\n  \"domain\": \"{{88.brand_domain}}\",\r\n  \"name\": \"{{87.data.name}}\",\r\n  \"employerText\": \"{{100.result}}\",\r\n  \"description\": \"{{87.data.description}}\",\r\n  \"matchedBenefits\": \"{{106.matched_benefits}}\",\r\n  \"folderUrl\": \"{{25.webViewLink}}\",\r\n  \"docUrl\": \"{{26.alternateLink}}\",\r\n  \"qualityScore\": {{87.data.qualityScore}},\r\n  \"logos\": [{{87.data.logos}}],\r\n  \"images\": [{{87.data.images}}],\r\n  \"colors\": [{{87.data.colors}}],\r\n  \"fonts\": [{{87.data.fonts}}],\r\n  \"links\": [{{87.data.links}}]\r\n}",
+                "body": "{\r\n  \"success\": true,\r\n  \"domain\": \"{{88.brand_domain}}\",\r\n  \"name\": \"{{87.data.name}}\",\r\n  \"employerText\": \"{{100.result}}\",\r\n  \"description\": \"{{87.data.description}}\",\r\n  \"matchedBenefits\": \"{{106.matched_benefits}}\",\r\n  \"folderUrl\": \"{{25.webViewLink}}\",\r\n  \"docUrl\": \"{{26.alternateLink}}\",\r\n  \"qualityScore\": {{87.data.qualityScore}},\r\n  \"logos\": [{{87.data.logos}}],\r\n  \"images\": [{{ifempty(11.images; 87.data.images)}}],\r\n  \"colors\": [{{87.data.colors}}],\r\n  \"fonts\": [{{87.data.fonts}}],\r\n  \"links\": [{{87.data.links}}]\r\n}",
                 "headers": [
                     {
                         "key": "Content-Type",
@@ -368,3 +392,12 @@
         "zone": "eu2.make.com"
     }
 }
+
+
+
+
+
+
+
+
+
