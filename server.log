@@ -1,0 +1,20 @@
+npm warn exec The following package was not found and will be installed: serve@14.2.5
+ INFO  Accepting connections at http://localhost:41175
+ HTTP  1/13/2026 10:39:29 AM ::1 GET /
+ HTTP  1/13/2026 10:39:29 AM ::1 Returned 200 in 264 ms
+ HTTP  1/13/2026 10:39:29 AM ::1 GET /_next/static/css/5937bf0c38e4510e.css
+ HTTP  1/13/2026 10:39:29 AM ::1 GET /_next/static/chunks/webpack-0cc0401e077e1436.js
+ HTTP  1/13/2026 10:39:29 AM ::1 Returned 200 in 5 ms
+ HTTP  1/13/2026 10:39:29 AM ::1 Returned 200 in 5 ms
+ HTTP  1/13/2026 10:39:29 AM ::1 GET /_next/static/chunks/fd9d1056-079123e4e637ee87.js
+ HTTP  1/13/2026 10:39:29 AM ::1 GET /_next/static/chunks/938-05b2f7a5b1f99a14.js
+ HTTP  1/13/2026 10:39:29 AM ::1 GET /_next/static/chunks/main-app-857f45503ab14ec1.js
+ HTTP  1/13/2026 10:39:29 AM ::1 GET /_next/static/chunks/759-d5e06b369ffef6c8.js
+ HTTP  1/13/2026 10:39:29 AM ::1 GET /_next/static/chunks/app/page-22a74d34de3f77fc.js
+ HTTP  1/13/2026 10:39:29 AM ::1 Returned 200 in 7 ms
+ HTTP  1/13/2026 10:39:29 AM ::1 Returned 200 in 8 ms
+ HTTP  1/13/2026 10:39:29 AM ::1 Returned 200 in 6 ms
+ HTTP  1/13/2026 10:39:29 AM ::1 Returned 200 in 10 ms
+ HTTP  1/13/2026 10:39:29 AM ::1 Returned 200 in 13 ms
+
+ INFO  Gracefully shutting down. Please wait...
