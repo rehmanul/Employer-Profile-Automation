@@ -203,8 +203,18 @@ export default function EmployerProfilePro() {
       });
 
       const webhookResult = await webhookPromise;
-      if (!webhookResult.ok) throw new Error('Webhook failed');
-      const webhookData = await webhookResult.json();
+      if (!webhookResult.ok) throw new Error(`Webhook failed: ${webhookResult.status}`);
+
+      const text = await webhookResult.text();
+      let webhookData;
+      try {
+        webhookData = JSON.parse(text);
+      } catch (e) {
+        if (text.trim() === 'Accepted') {
+           throw new Error('Backend accepted request but returned no data. Automation might be running in background or failed.');
+        }
+        throw new Error(`Invalid server response: ${text.substring(0, 100)}`);
+      }
 
       clearInterval(interval);
 
