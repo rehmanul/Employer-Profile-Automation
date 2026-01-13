@@ -140,7 +140,7 @@
             "parameters": {},
             "mapper": {
                 "model": "gemini-2.5-flash",
-                "textPrompt": "Erstelle eine kurze, ansprechende Arbeitgeberbeschreibung als Fließtext auf Basis des folgenden Inhalts: {{87.data.description}}\r\n\r\n- Nenne ein paar Vorteile für Mitarbeiter\r\n\r\nKeine Formatierungen oder Markdown, Markup. Echte Zeilenumbrüche, keine \\n; keine Kommentare\r\n\r\nDer Text muss lesefertig sein und sich direkt an Bewerber:innen richten."
+                "textPrompt": "Erstelle eine kurze, ansprechende Arbeitgeberbeschreibung als Flie\u00dftext auf Basis des folgenden Inhalts: {{87.data.description}}\r\n\r\n- Nenne ein paar Vorteile f\u00fcr Mitarbeiter\r\n\r\nKeine Formatierungen oder Markdown, Markup. Echte Zeilenumbr\u00fcche, keine \\n; keine Kommentare\r\n\r\nDer Text muss lesefertig sein und sich direkt an Bewerber:innen richten."
             },
             "metadata": {
                 "designer": {
@@ -157,12 +157,72 @@
             "mapper": {
                 "name": "matched_benefits",
                 "scope": "roundtrip",
-                "value": "{{replace(if(contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"kantine\") | contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"canteen\") | contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"cafeteria\"); \"Kantine, \"; \"\") + if(contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"fortbildung\") | contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"weiterbildung\") | contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"training\") | contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"development\") | contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"academy\") | contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"learning\"); \"Fortbildungen, \"; \"\") + if(contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"flexible\") | contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"flexibel\") | contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"gleitzeit\") | contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"flextime\") | contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"work-life-balance\"); \"flexible Arbeitszeiten, \"; \"\") + if(contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"fahrtkosten\") | contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"transportation\") | contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"ticket\") | contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"public transport\"); \"Fahrtkostenerstattung, \"; \"\") + if(contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"firmenwagen\") | contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"company car\") | contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"vehicle\"); \"Firmenwagen, \"; \"\") + if(contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"essenszulage\") | contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"meal allowance\") | contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"food subsidy\"); \"Essenszulage, \"; \"\") + if(contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"kinderbetreuung\") | contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"childcare\") | contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"kindergarten\") | contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"family\"); \"Kinderbetreuung, \"; \"\") + if(contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"homeoffice\") | contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"home office\") | contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"remote\") | contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"mobile work\") | contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"work from home\"); \"Homeoffice, \"; \"\") + if(contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"event\") | contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"teamevent\") | contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"team-event\") | contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"party\") | contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"feiern\"); \"Mitarbeiter Events, \"; \"\") + if(contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"arbeitskleidung\") | contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"workwear\"); \"Arbeitskleidung wird gestellt, \"; \"\") + if(contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"ausbildung\") | contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"apprenticeship\"); \"bezahlte Ausbildungsmöglichkeiten, \"; \"\") + if(contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"mitarbeiterbeteiligung\") | contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"equity\") | contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"shares\") | contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"aktien\") | contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"stock options\"); \"Mitarbeiterbeteiligung, \"; \"\") + if(contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"handy\") | contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"phone\") | contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"smartphone\") | contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"mobile phone\"); \"Mitarbeiterhandy, \"; \"\") + if(contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"rabatt\") | contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"discount\") | contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"corporate benefits\") | contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"shopping\"); \"Mitarbeiterrabatte, \"; \"\") + if(contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"internet\"); \"Private Internetnutzung erlaubt, \"; \"\") + if(contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"parkplatz\") | contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"parking\"); \"Parkplatz, \"; \"\") + if(contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"altersvorsorge\") | contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"pension\") | contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"retirement\"); \"betriebliche Altersvorsorge, \"; \"\") + if(contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"gesundheit\") | contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"health\") | contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"fitness\") | contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"sport\") | contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"gym\") | contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"well-being\") | contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"wellbeing\"); \"Gesundheitsmaßnahmen, \"; \"\") + if(contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"betriebsarzt\") | contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"doctor\") | contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"medical\"); \"Betriebsarzt, \"; \"\") + if(contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"coaching\") | contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"mentor\"); \"Coaching, \"; \"\") + if(contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"verkehrsanbindung\") | contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"transport connection\"); \"gute Verkehrsanbindung, \"; \"\") + if(contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"barrierefrei\") | contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"accessible\"); \"barrierefrei, \"; \"\") + if(contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"hund\") | contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"dog\"); \"Hunde geduldet, \"; \"\") + if(contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"urlaub\") | contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"vacation\") | contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"holiday\") | contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"time off\") | contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"leave\") | contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"30 tage\") | contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"weeks vacation\"); \"30+ Tage Urlaub, \"; \"\") + if(contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"jobrad\") | contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"job-rad\") | contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"bike\") | contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"fahrrad\") | contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"leasing\"); \"JobRad, \"; \"\") + if(contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"4-tage\") | contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"4 day\") | contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"four day\"); \"4-Tage-Woche, \"; \"\"); /, $/; \"\")}}"
+                "value": "{{replace(if(contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"kantine\") | contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"canteen\") | contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"cafeteria\"); \"Kantine, \"; \"\") + if(contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"fortbildung\") | contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"weiterbildung\") | contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"training\") | contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"development\") | contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"academy\") | contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"learning\"); \"Fortbildungen, \"; \"\") + if(contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"flexible\") | contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"flexibel\") | contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"gleitzeit\") | contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"flextime\") | contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"work-life-balance\"); \"flexible Arbeitszeiten, \"; \"\") + if(contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"fahrtkosten\") | contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"transportation\") | contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"ticket\") | contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"public transport\"); \"Fahrtkostenerstattung, \"; \"\") + if(contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"firmenwagen\") | contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"company car\") | contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"vehicle\"); \"Firmenwagen, \"; \"\") + if(contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"essenszulage\") | contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"meal allowance\") | contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"food subsidy\"); \"Essenszulage, \"; \"\") + if(contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"kinderbetreuung\") | contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"childcare\") | contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"kindergarten\") | contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"family\"); \"Kinderbetreuung, \"; \"\") + if(contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"homeoffice\") | contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"home office\") | contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"remote\") | contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"mobile work\") | contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"work from home\"); \"Homeoffice, \"; \"\") + if(contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"event\") | contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"teamevent\") | contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"team-event\") | contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"party\") | contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"feiern\"); \"Mitarbeiter Events, \"; \"\") + if(contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"arbeitskleidung\") | contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"workwear\"); \"Arbeitskleidung wird gestellt, \"; \"\") + if(contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"ausbildung\") | contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"apprenticeship\"); \"bezahlte Ausbildungsm\u00f6glichkeiten, \"; \"\") + if(contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"mitarbeiterbeteiligung\") | contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"equity\") | contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"shares\") | contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"aktien\") | contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"stock options\"); \"Mitarbeiterbeteiligung, \"; \"\") + if(contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"handy\") | contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"phone\") | contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"smartphone\") | contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"mobile phone\"); \"Mitarbeiterhandy, \"; \"\") + if(contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"rabatt\") | contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"discount\") | contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"corporate benefits\") | contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"shopping\"); \"Mitarbeiterrabatte, \"; \"\") + if(contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"internet\"); \"Private Internetnutzung erlaubt, \"; \"\") + if(contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"parkplatz\") | contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"parking\"); \"Parkplatz, \"; \"\") + if(contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"altersvorsorge\") | contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"pension\") | contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"retirement\"); \"betriebliche Altersvorsorge, \"; \"\") + if(contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"gesundheit\") | contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"health\") | contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"fitness\") | contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"sport\") | contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"gym\") | contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"well-being\") | contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"wellbeing\"); \"Gesundheitsma\u00dfnahmen, \"; \"\") + if(contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"betriebsarzt\") | contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"doctor\") | contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"medical\"); \"Betriebsarzt, \"; \"\") + if(contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"coaching\") | contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"mentor\"); \"Coaching, \"; \"\") + if(contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"verkehrsanbindung\") | contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"transport connection\"); \"gute Verkehrsanbindung, \"; \"\") + if(contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"barrierefrei\") | contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"accessible\"); \"barrierefrei, \"; \"\") + if(contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"hund\") | contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"dog\"); \"Hunde geduldet, \"; \"\") + if(contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"urlaub\") | contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"vacation\") | contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"holiday\") | contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"time off\") | contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"leave\") | contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"30 tage\") | contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"weeks vacation\"); \"30+ Tage Urlaub, \"; \"\") + if(contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"jobrad\") | contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"job-rad\") | contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"bike\") | contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"fahrrad\") | contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"leasing\"); \"JobRad, \"; \"\") + if(contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"4-tage\") | contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"4 day\") | contains(lower(87.data.description + \" \" + ifempty(87.data.longDescription; \"\")); \"four day\"); \"4-Tage-Woche, \"; \"\"); /, $/; \"\")}}"
             },
             "metadata": {
                 "designer": {
-                    "x": 1650,
-                    "y": 150
+                    "x": 1800,
+                    "y": 0
+                }
+            }
+        },
+        {
+            "id": 200,
+            "module": "gemini-ai:simpleTextPrompt",
+            "version": 1,
+            "parameters": {},
+            "mapper": {
+                "model": "gemini-2.5-flash",
+                "textPrompt": "Erstelle eine attraktive Stellenanzeige f\u00fcr die Position '{{11.jobTitle}}' bei '{{87.data.name}}'.\n\nNutze folgende Informationen \u00fcber den Arbeitgeber:\n{{87.data.description}}\n{{100.result}}\n\nStruktur der Anzeige:\n1. Einleitung (Warum wir?)\n2. Deine Mission (Aufgaben)\n3. Was du mitbringst (Profil)\n4. Das bieten wir dir (Benefits - nutze auch: {{106.matched_benefits}})\n5. Call to Action (\u00dcberzeugt?)\n\nTonfall: Professionell, aber einladend. Direktansprache (Du). Bitte formatiere den Text sauber mit \u00dcberschriften, aber ohne Markdown-Syntax (* oder #), nutze echte Zeilenumbr\u00fcche."
+            },
+            "metadata": {
+                "designer": {
+                    "x": 2100,
+                    "y": 0
+                }
+            }
+        },
+        {
+            "id": 26,
+            "module": "google-docs:createADocument",
+            "version": 1,
+            "parameters": {
+                "__IMTCONN__": 10941496
+            },
+            "mapper": {
+                "name": "Arbeitgeberprofil {{88.brand_domain}}",
+                "content": "\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\r\n                    ARBEITGEBERPROFIL\r\n\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\r\n\r\n\ud83c\udfe2 UNTERNEHMEN\r\n\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\r\nDomain:              {{88.brand_domain}}\r\nName:                {{87.data.name}}\r\n\r\n\ud83d\udcdd ARBEITGEBERBESCHREIBUNG (KI-generiert)\r\n\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\r\n{{100.result}}\r\n\r\n\u2705 ERKANNTE BENEFITS\r\n\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\r\n{{106.matched_benefits}}\r\n\r\n\ud83c\udfa8 MARKENIDENTIT\u00c4T\r\n\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\r\nQuality Score:       {{87.data.qualityScore}}\r\n\r\n\ud83d\uddbc\ufe0f LOGOS (hochgeladen in Ordner)\r\n\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\r\nPrimary:             {{87.data.logos[1].formats[1].src}}\r\n\r\n\ud83d\udcf7 BILDER (max. 10, hochgeladen in Ordner)\r\n\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\r\n{{87.data.images[1].formats[1].src}}\r\n{{87.data.images[2].formats[1].src}}\r\n{{87.data.images[3].formats[1].src}}\r\n{{87.data.images[4].formats[1].src}}\r\n{{87.data.images[5].formats[1].src}}\r\n{{87.data.images[6].formats[1].src}}\r\n{{87.data.images[7].formats[1].src}}\r\n{{87.data.images[8].formats[1].src}}\r\n{{87.data.images[9].formats[1].src}}\r\n{{87.data.images[10].formats[1].src}}\r\n\r\n\ud83c\udfa8 FARBEN\r\n\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\r\nPrimary:             {{87.data.colors[1].hex}}\r\nSecondary:           {{87.data.colors[2].hex}}\r\nAccent:              {{87.data.colors[3].hex}}\r\n\r\n\ud83d\udd24 TYPOGRAFIE\r\n\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\r\nTitle Font:          {{87.data.fonts[1].name}}\r\nBody Font:           {{87.data.fonts[2].name}}\r\n\r\n\ud83d\udd17 SOZIALE MEDIEN\r\n\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\r\n{{87.data.links[1].name}}: {{87.data.links[1].url}}\r\n{{87.data.links[2].name}}: {{87.data.links[2].url}}\r\n{{87.data.links[3].name}}: {{87.data.links[3].url}}\r\n\r\n\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\r\n                 Erstellt am {{11.timestamp}}\r\n\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\r\n\r\n{{if(length(11.jobTitle) > 0; \"\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\r\n                    STELLENANZEIGE\r\n\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\r\n\r\n\" + 200.result; \"\")}}",
+                "destination": "drive",
+                "header": false,
+                "footer": false,
+                "folderId": "{{25.id}}"
+            },
+            "metadata": {
+                "designer": {
+                    "x": 2400,
+                    "y": 0
+                }
+            }
+        },
+        {
+            "id": 99,
+            "module": "gateway:WebhookRespond",
+            "version": 1,
+            "parameters": {},
+            "mapper": {
+                "status": "200",
+                "body": "{\r\n  \"success\": true,\r\n  \"domain\": \"{{88.brand_domain}}\",\r\n  \"name\": \"{{87.data.name}}\",\r\n  \"employerText\": \"{{100.result}}\",\r\n  \"description\": \"{{87.data.description}}\",\r\n  \"matchedBenefits\": \"{{106.matched_benefits}}\",\r\n  \"folderUrl\": \"{{25.webViewLink}}\",\r\n  \"docUrl\": \"{{26.webViewLink}}\",\r\n  \"qualityScore\": {{87.data.qualityScore}},\r\n  \"logos\": [{{87.data.logos}}],\r\n  \"images\": [{{87.data.images}}],\r\n  \"colors\": [{{87.data.colors}}],\r\n  \"fonts\": [{{87.data.fonts}}],\r\n  \"links\": [{{87.data.links}}],\r\n  \"jobAd\": \"{{if(length(11.jobTitle) > 0; 200.result; null)}}\"\r\n}",
+                "headers": [
+                    {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                    }
+                ]
+            },
+            "metadata": {
+                "designer": {
+                    "x": 2700,
+                    "y": 0
                 }
             }
         },
@@ -176,7 +236,7 @@
             },
             "metadata": {
                 "designer": {
-                    "x": 1800,
+                    "x": 3000,
                     "y": 0
                 },
                 "note": "Iterate over logos"
@@ -200,7 +260,7 @@
             },
             "metadata": {
                 "designer": {
-                    "x": 2100,
+                    "x": 3300,
                     "y": 0
                 }
             }
@@ -222,7 +282,7 @@
             },
             "metadata": {
                 "designer": {
-                    "x": 2400,
+                    "x": 3600,
                     "y": 0
                 }
             }
@@ -239,7 +299,7 @@
             },
             "metadata": {
                 "designer": {
-                    "x": 2550,
+                    "x": 3900,
                     "y": 0
                 },
                 "note": "End logo loop"
@@ -255,8 +315,8 @@
             },
             "metadata": {
                 "designer": {
-                    "x": 2700,
-                    "y": 150
+                    "x": 4200,
+                    "y": 0
                 },
                 "note": "Iterate over images (max 10)"
             }
@@ -279,8 +339,8 @@
             },
             "metadata": {
                 "designer": {
-                    "x": 2850,
-                    "y": 150
+                    "x": 4500,
+                    "y": 0
                 }
             }
         },
@@ -301,8 +361,8 @@
             },
             "metadata": {
                 "designer": {
-                    "x": 3000,
-                    "y": 150
+                    "x": 4800,
+                    "y": 0
                 }
             }
         },
@@ -318,70 +378,10 @@
             },
             "metadata": {
                 "designer": {
-                    "x": 3150,
-                    "y": 150
+                    "x": 5100,
+                    "y": 0
                 },
                 "note": "End image loop"
-            }
-        },
-        {
-            "id": 26,
-            "module": "google-docs:createADocument",
-            "version": 1,
-            "parameters": {
-                "__IMTCONN__": 10941496
-            },
-            "mapper": {
-                "name": "Arbeitgeberprofil {{88.brand_domain}}",
-                "content": "═══════════════════════════════════════════════════════════════\r\n                    ARBEITGEBERPROFIL\r\n═══════════════════════════════════════════════════════════════\r\n\r\n🏢 UNTERNEHMEN\r\n───────────────────────────────────────────────────────────────\r\nDomain:              {{88.brand_domain}}\r\nName:                {{87.data.name}}\r\n\r\n📝 ARBEITGEBERBESCHREIBUNG (KI-generiert)\r\n───────────────────────────────────────────────────────────────\r\n{{100.result}}\r\n\r\n✅ ERKANNTE BENEFITS\r\n───────────────────────────────────────────────────────────────\r\n{{106.matched_benefits}}\r\n\r\n🎨 MARKENIDENTITÄT\r\n───────────────────────────────────────────────────────────────\r\nQuality Score:       {{87.data.qualityScore}}\r\n\r\n🖼️ LOGOS (hochgeladen in Ordner)\r\n───────────────────────────────────────────────────────────────\r\nPrimary:             {{87.data.logos[1].formats[1].src}}\r\n\r\n📷 BILDER (max. 10, hochgeladen in Ordner)\r\n───────────────────────────────────────────────────────────────\r\n{{87.data.images[1].formats[1].src}}\r\n{{87.data.images[2].formats[1].src}}\r\n{{87.data.images[3].formats[1].src}}\r\n{{87.data.images[4].formats[1].src}}\r\n{{87.data.images[5].formats[1].src}}\r\n{{87.data.images[6].formats[1].src}}\r\n{{87.data.images[7].formats[1].src}}\r\n{{87.data.images[8].formats[1].src}}\r\n{{87.data.images[9].formats[1].src}}\r\n{{87.data.images[10].formats[1].src}}\r\n\r\n🎨 FARBEN\r\n───────────────────────────────────────────────────────────────\r\nPrimary:             {{87.data.colors[1].hex}}\r\nSecondary:           {{87.data.colors[2].hex}}\r\nAccent:              {{87.data.colors[3].hex}}\r\n\r\n🔤 TYPOGRAFIE\r\n───────────────────────────────────────────────────────────────\r\nTitle Font:          {{87.data.fonts[1].name}}\r\nBody Font:           {{87.data.fonts[2].name}}\r\n\r\n🔗 SOZIALE MEDIEN\r\n───────────────────────────────────────────────────────────────\r\n{{87.data.links[1].name}}: {{87.data.links[1].url}}\r\n{{87.data.links[2].name}}: {{87.data.links[2].url}}\r\n{{87.data.links[3].name}}: {{87.data.links[3].url}}\r\n\r\n═══════════════════════════════════════════════════════════════\r\n                 Erstellt am {{11.timestamp}}\r\n═══════════════════════════════════════════════════════════════\r\n\r\n{{if(length(11.jobTitle) > 0; \"═══════════════════════════════════════════════════════════════\r\n                    STELLENANZEIGE\r\n═══════════════════════════════════════════════════════════════\r\n\r\n\" + 200.result; \"\")}}",
-                "destination": "drive",
-                "header": false,
-                "footer": false,
-                "folderId": "{{25.id}}"
-            },
-            "metadata": {
-                "designer": {
-                    "x": 3300,
-                    "y": 0
-                }
-            }
-        },
-        {
-            "id": 99,
-            "module": "gateway:WebhookRespond",
-            "version": 1,
-            "parameters": {},
-            "mapper": {
-                "status": "200",
-                "body": "{\r\n  \"success\": true,\r\n  \"domain\": \"{{88.brand_domain}}\",\r\n  \"name\": \"{{87.data.name}}\",\r\n  \"employerText\": \"{{100.result}}\",\r\n  \"description\": \"{{87.data.description}}\",\r\n  \"matchedBenefits\": \"{{106.matched_benefits}}\",\r\n  \"folderUrl\": \"{{25.webViewLink}}\",\r\n  \"docUrl\": \"{{26.webViewLink}}\",\r\n  \"qualityScore\": {{87.data.qualityScore}},\r\n  \"logos\": [{{87.data.logos}}],\r\n  \"images\": [{{87.data.images}}],\r\n  \"colors\": [{{87.data.colors}}],\r\n  \"fonts\": [{{87.data.fonts}}],\r\n  \"links\": [{{87.data.links}}],\r\n  \"jobAd\": \"{{if(length(11.jobTitle) > 0; 200.result; null)}}\"\r\n}",
-                "headers": [
-                    {
-                        "key": "Content-Type",
-                        "value": "application/json"
-                    }
-                ]
-            },
-            "metadata": {
-                "designer": {
-                    "x": 3600,
-                    "y": 0
-                }
-            }
-        },
-        {
-            "id": 200,
-            "module": "gemini-ai:simpleTextPrompt",
-            "version": 1,
-            "parameters": {},
-            "mapper": {
-                "model": "gemini-2.5-flash",
-                "textPrompt": "Erstelle eine attraktive Stellenanzeige für die Position '{{11.jobTitle}}' bei '{{87.data.name}}'.\n\nNutze folgende Informationen über den Arbeitgeber:\n{{87.data.description}}\n{{100.result}}\n\nStruktur der Anzeige:\n1. Einleitung (Warum wir?)\n2. Deine Mission (Aufgaben)\n3. Was du mitbringst (Profil)\n4. Das bieten wir dir (Benefits - nutze auch: {{106.matched_benefits}})\n5. Call to Action (Überzeugt?)\n\nTonfall: Professionell, aber einladend. Direktansprache (Du). Bitte formatiere den Text sauber mit Überschriften, aber ohne Markdown-Syntax (* oder #), nutze echte Zeilenumbrüche."
-            },
-            "metadata": {
-                "designer": {
-                    "x": 1650,
-                    "y": 300
-                }
             }
         }
     ],
