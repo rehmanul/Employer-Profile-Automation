@@ -6,7 +6,7 @@ import {
   RefreshCw, ExternalLink, FileText, Award, FolderOpen, X, Globe,
   CheckCircle, Clock, XCircle, Palette, Type, Link2, Upload, Database,
   Moon, Sun, Copy, Check, Zap, Activity, TrendingUp, ChevronDown, ChevronUp,
-  Filter, Table, ArrowUpDown, ArrowUp, ArrowDown, Calendar, Building2
+  Filter, Table, ArrowUpDown, ArrowUp, ArrowDown, Calendar, Building2, MapPin, Briefcase
 } from 'lucide-react';
 
 interface Profile {
@@ -167,23 +167,38 @@ export default function EmployerProfilePro() {
         } catch(e) {}
 
         console.log('Fetching Google Images for:', query);
-        googleSearchPromise = fetch(`https://www.googleapis.com/customsearch/v1?key=${googleApiKey}&cx=${googleCx}&q=${encodeURIComponent(query + ' office team culture')}&searchType=image&num=5`);
+        // Fallback Logic: Try "Company office team culture" first, then just "Company"
+        const fetchImages = async (q: string) => {
+            const res = await fetch(`https://www.googleapis.com/customsearch/v1?key=${googleApiKey}&cx=${googleCx}&q=${encodeURIComponent(q)}&searchType=image&num=5`);
+            if (!res.ok) throw new Error(res.statusText);
+            const json = await res.json();
+            return json.items || [];
+        };
+
+        googleSearchPromise = (async () => {
+            try {
+                let items = await fetchImages(query + ' office team culture');
+                if (!items || items.length === 0) {
+                    console.log('No specific images found, trying broader query...');
+                    items = await fetchImages(query);
+                }
+                return { ok: true, items };
+            } catch (e) {
+                console.error('Image search error:', e);
+                return { ok: false, items: [] };
+            }
+        })() as any;
       }
 
       // Wait for Google Search results first
       if (googleSearchPromise) {
           try {
-            const res = await googleSearchPromise;
-            if (res.ok) {
-                const json = await res.json();
-                if (json?.items) {
-                    googleImages = json.items.map((item: any) => ({
-                        formats: [{ src: item.link, format: 'original' }]
-                    }));
-                    console.log(`Found ${googleImages.length} images from Google`);
-                }
-            } else {
-                console.error('Google Search Failed:', res.status, await res.text());
+            const res: any = await googleSearchPromise;
+            if (res.ok && res.items) {
+                googleImages = res.items.map((item: any) => ({
+                    formats: [{ src: item.link, format: 'original' }]
+                }));
+                console.log(`Found ${googleImages.length} images from Google`);
             }
           } catch (e) {
               console.error('Google Search Error:', e);
@@ -197,7 +212,7 @@ export default function EmployerProfilePro() {
         body: JSON.stringify({
             website: url,
             timestamp: new Date().toISOString(),
-            images: googleImages,
+            images: googleImages, // Pass found images to webhook
             jobTitle: jobTitle
         })
       });
@@ -225,9 +240,7 @@ export default function EmployerProfilePro() {
           data.jobTitle = jobTitle;
       }
 
-      // Merge images if webhook didn't return them but we have them locally (though now webhook should return them if we updated logic)
-      // Actually, let's ensure local images are added if webhook returns fewer/none, or just rely on webhook if it echoes them back.
-      // But since we just want to be safe:
+      // Merge images if webhook didn't return them but we have them locally
       const combinedImages = [...(data.images || []), ...googleImages];
 
       // Deduplicate
@@ -998,61 +1011,160 @@ export default function EmployerProfilePro() {
                   <div className="space-y-4">
                     {/* Job Ad Preview (Sales Tool) */}
                     {selectedProfile.data.jobAd && (
-                      <div className="bg-white text-gray-900 rounded-xl overflow-hidden shadow-2xl border border-gray-200">
-                          {/* Job Header */}
-                          <div className="border-b border-gray-100 p-6 flex justify-between items-start">
-                              <div className="flex gap-4">
-                                  {selectedProfile.data.logos?.[0]?.formats?.[0]?.src && (
-                                      <img src={selectedProfile.data.logos[0].formats[0].src} className="w-16 h-16 object-contain" />
-                                  )}
-                                  <div>
-                                      <h2 className="text-2xl font-bold text-gray-900">
-                                          {(selectedProfile.data as any).jobTitle || 'Job Title'}
-                                      </h2>
-                                      <p className="text-gray-500">{selectedProfile.data.name}</p>
+                      <div className="bg-white text-gray-900 rounded-xl overflow-hidden shadow-2xl border border-gray-200 font-sans">
+                          {/* 1. Header Image */}
+                          <div className="h-64 w-full bg-gray-100 relative overflow-hidden">
+                              {selectedProfile.data.images && selectedProfile.data.images.length > 0 ? (
+                                  <img src={selectedProfile.data.images[0].formats?.[0]?.src} className="w-full h-full object-cover" />
+                              ) : (
+                                  <div className="w-full h-full bg-gradient-to-r from-blue-900 to-blue-700 flex items-center justify-center">
+                                      <Building2 className="w-16 h-16 text-white/20" />
                                   </div>
+                              )}
+                              <div className="absolute top-4 right-4 bg-white/90 p-2 rounded shadow-lg backdrop-blur">
+                                  {selectedProfile.data.logos?.[0]?.formats?.[0]?.src ? (
+                                      <img src={selectedProfile.data.logos[0].formats[0].src} className="h-12 w-auto object-contain" />
+                                  ) : (
+                                      <span className="font-bold text-gray-800 px-2">{selectedProfile.data.name}</span>
+                                  )}
                               </div>
-                              <button className="bg-blue-600 text-white px-6 py-2 rounded font-semibold hover:bg-blue-700">
-                                  Bewerben
-                              </button>
                           </div>
 
-                          {/* Job Content */}
-                          <div className="p-8 space-y-8">
-                             {/* Render the raw text with newlines properly */}
-                             <div className="prose max-w-none whitespace-pre-line text-gray-700 leading-relaxed">
-                                {selectedProfile.data.jobAd}
-                             </div>
+                          {/* 2. Job Title & Meta */}
+                          <div className="px-8 pt-8 pb-4 border-b border-gray-100">
+                              <span className="text-blue-600 font-bold uppercase text-xs tracking-wider mb-2 block">
+                                  {selectedProfile.data.name}
+                              </span>
+                              <h1 className="text-3xl md:text-4xl font-extrabold text-gray-900 mb-4 leading-tight">
+                                  {(selectedProfile.data as any).jobTitle || 'Job Title'}
+                              </h1>
 
-                             {/* Images Gallery in Job Ad */}
-                             {selectedProfile.data.images && selectedProfile.data.images.length > 0 && (
-                                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-8">
+                              <div className="flex flex-wrap gap-4 text-sm text-gray-600 mb-6">
+                                  <div className="flex items-center gap-1.5">
+                                      <Building2 className="w-4 h-4" />
+                                      {selectedProfile.data.name}
+                                  </div>
+                                  <div className="flex items-center gap-1.5">
+                                      <MapPin className="w-4 h-4" />
+                                      Deutschland (Remote / Office)
+                                  </div>
+                                  <div className="flex items-center gap-1.5">
+                                      <Briefcase className="w-4 h-4" />
+                                      Vollzeit / Teilzeit
+                                  </div>
+                              </div>
+
+                              <div className="flex gap-3">
+                                  <button className="bg-blue-600 text-white px-8 py-3 rounded font-bold hover:bg-blue-700 transition shadow-lg shadow-blue-600/20">
+                                      Jetzt bewerben
+                                  </button>
+                                  <button className="bg-white text-blue-600 border border-blue-600 px-8 py-3 rounded font-bold hover:bg-blue-50 transition">
+                                      Merken
+                                  </button>
+                              </div>
+                          </div>
+
+                          {/* 3. Job Content */}
+                          <div className="p-8 grid grid-cols-1 lg:grid-cols-3 gap-12">
+                              {/* Left Column (Main) */}
+                              <div className="lg:col-span-2 space-y-8">
+                                   {/* Render the raw text with better formatting */}
+                                   <div className="prose prose-blue max-w-none text-gray-700 leading-relaxed">
+                                      {/* We split by double newline to create paragraphs */}
+                                      {selectedProfile.data.jobAd.split('\n\n').map((para, i) => (
+                                          <p key={i} className="mb-4">{para}</p>
+                                      ))}
+                                   </div>
+                              </div>
+
+                              {/* Right Column (Sidebar/Benefits) */}
+                              <div className="space-y-8">
+                                  <div className="bg-gray-50 p-6 rounded-xl border border-gray-100">
+                                      <h3 className="font-bold text-gray-900 mb-4">Das bieten wir dir</h3>
+                                      <ul className="space-y-3">
+                                          {selectedProfile.data.matchedBenefits ?
+                                              selectedProfile.data.matchedBenefits.split(',').map((b, i) => (
+                                                  <li key={i} className="flex items-start gap-3 text-sm text-gray-700">
+                                                      <CheckCircle className="w-5 h-5 text-green-500 shrink-0 mt-0.5" />
+                                                      <span>{b.trim()}</span>
+                                                  </li>
+                                              ))
+                                          : (
+                                              <li className="text-gray-500 text-sm">Keine spezifischen Benefits erkannt.</li>
+                                          )}
+                                      </ul>
+                                  </div>
+
+                                  <div className="bg-gray-50 p-6 rounded-xl border border-gray-100">
+                                      <h3 className="font-bold text-gray-900 mb-4">Kontakt</h3>
+                                      <p className="text-sm text-gray-700 mb-2">Haben Sie Fragen zur Stelle?</p>
+                                      <p className="font-bold text-blue-600">hr@{selectedProfile.data.domain || 'company.com'}</p>
+                                  </div>
+                              </div>
+                          </div>
+
+                          {/* 4. Gallery */}
+                          {selectedProfile.data.images && selectedProfile.data.images.length > 0 && (
+                              <div className="px-8 pb-8">
+                                  <h3 className="font-bold text-gray-900 mb-4 text-xl">Einblicke</h3>
+                                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                                      {selectedProfile.data.images.slice(0, 4).map((img, i) => (
-                                         <div key={i} className="rounded-lg overflow-hidden h-32">
+                                         <div key={i} className="rounded-xl overflow-hidden h-40 group relative">
                                             {img.formats?.[0]?.src && (
-                                                <img src={img.formats[0].src} className="w-full h-full object-cover" />
+                                                <img src={img.formats[0].src} className="w-full h-full object-cover transition duration-500 group-hover:scale-110" />
                                             )}
                                          </div>
                                      ))}
-                                 </div>
-                             )}
-                          </div>
-
-                          {/* Order Form */}
-                          <div className="bg-gray-50 p-8 border-t border-gray-200">
-                              <h3 className="text-xl font-bold mb-4">Job-Anzeige veröffentlichen</h3>
-                              <p className="text-gray-600 mb-6">Gefällt Ihnen der Entwurf? Buchen Sie jetzt die Veröffentlichung.</p>
-
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                                  <input type="text" placeholder="Firmenname" className="p-3 border rounded-lg" />
-                                  <input type="text" placeholder="Ansprechpartner" className="p-3 border rounded-lg" />
-                                  <input type="email" placeholder="E-Mail für Rechnung" className="p-3 border rounded-lg" />
-                                  <input type="text" placeholder="Straße, Hausnummer" className="p-3 border rounded-lg" />
-                                  <input type="text" placeholder="PLZ, Ort" className="p-3 border rounded-lg" />
+                                  </div>
                               </div>
-                              <button className="bg-green-600 text-white px-8 py-3 rounded-lg font-bold text-lg hover:bg-green-700 w-full md:w-auto" onClick={() => alert('Bestellung simuliert!')}>
-                                  Kostenpflichtig bestellen
-                              </button>
+                          )}
+
+                          {/* 5. Order Form (Sales Tool) */}
+                          <div className="bg-slate-900 text-white p-8 md:p-12 border-t border-slate-800">
+                              <div className="max-w-4xl mx-auto">
+                                  <div className="flex items-center gap-3 mb-6">
+                                      <div className="bg-green-500 p-2 rounded-lg">
+                                          <Check className="w-6 h-6 text-white" />
+                                      </div>
+                                      <h3 className="text-2xl font-bold">Stellenanzeige veröffentlichen</h3>
+                                  </div>
+
+                                  <p className="text-slate-300 mb-8 text-lg">
+                                      Gefällt Ihnen dieser Entwurf? Buchen Sie jetzt die Veröffentlichung im Premium-Netzwerk.
+                                      Sie erhalten eine Rechnung per E-Mail.
+                                  </p>
+
+                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                                      <div>
+                                          <label className="block text-sm font-medium text-slate-400 mb-2">Firmenname</label>
+                                          <input type="text" className="w-full p-3 bg-slate-800 border border-slate-700 rounded-lg text-white focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Muster GmbH" />
+                                      </div>
+                                      <div>
+                                          <label className="block text-sm font-medium text-slate-400 mb-2">Ansprechpartner</label>
+                                          <input type="text" className="w-full p-3 bg-slate-800 border border-slate-700 rounded-lg text-white focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Max Mustermann" />
+                                      </div>
+                                      <div>
+                                          <label className="block text-sm font-medium text-slate-400 mb-2">E-Mail für Rechnung</label>
+                                          <input type="email" className="w-full p-3 bg-slate-800 border border-slate-700 rounded-lg text-white focus:ring-2 focus:ring-blue-500 outline-none" placeholder="buchhaltung@muster.de" />
+                                      </div>
+                                      <div>
+                                          <label className="block text-sm font-medium text-slate-400 mb-2">Anschrift</label>
+                                          <input type="text" className="w-full p-3 bg-slate-800 border border-slate-700 rounded-lg text-white focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Musterstraße 1, 12345 Berlin" />
+                                      </div>
+                                  </div>
+
+                                  <div className="flex flex-col md:flex-row items-center gap-6">
+                                      <button
+                                          className="w-full md:w-auto bg-green-600 text-white px-8 py-4 rounded-xl font-bold text-lg hover:bg-green-500 transition shadow-lg shadow-green-900/20 flex items-center justify-center gap-2"
+                                          onClick={() => alert('Vielen Dank! Ihre Bestellung wurde simuliert. (Backend Integration pending)')}
+                                      >
+                                          Kostenpflichtig bestellen (299€)
+                                      </button>
+                                      <p className="text-slate-400 text-sm">
+                                          Mit Klick auf den Button akzeptieren Sie unsere <a href="#" className="underline hover:text-white">AGB</a>.
+                                      </p>
+                                  </div>
+                              </div>
                           </div>
                       </div>
                     )}
@@ -1080,7 +1192,7 @@ export default function EmployerProfilePro() {
                     )}
 
                     {/* Matched Benefits */}
-                    {selectedProfile.data.matchedBenefits && selectedProfile.data.matchedBenefits.trim() !== '' && (
+                    {selectedProfile.data.matchedBenefits && selectedProfile.data.matchedBenefits.trim() !== '' && !selectedProfile.data.jobAd && (
                       <div className={`${darkMode ? 'bg-emerald-500/10' : 'bg-emerald-50'} rounded-xl p-4 border border-emerald-500/20`}>
                         <h3 className={`font-semibold ${t.text} mb-3 flex items-center gap-2`}>
                           <CheckCircle className="w-4 h-4 text-emerald-400" />Erkannte Benefits
@@ -1096,7 +1208,7 @@ export default function EmployerProfilePro() {
                     )}
 
                     {/* Images */}
-                    {(selectedProfile.data.images?.length ?? 0) > 0 && (
+                    {(selectedProfile.data.images?.length ?? 0) > 0 && !selectedProfile.data.jobAd && (
                       <div className={`${darkMode ? 'bg-white/5' : 'bg-gray-50'} rounded-xl p-4`}>
                         <h3 className={`font-semibold ${t.text} mb-3 flex items-center gap-2`}><Globe className="w-4 h-4 text-cyan-400" />Images ({selectedProfile.data.images?.length ?? 0})</h3>
                         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
@@ -1110,7 +1222,7 @@ export default function EmployerProfilePro() {
                     )}
 
                     {/* Logos */}
-                    {(selectedProfile.data.logos?.length ?? 0) > 0 && (
+                    {(selectedProfile.data.logos?.length ?? 0) > 0 && !selectedProfile.data.jobAd && (
                       <div className={`${darkMode ? 'bg-white/5' : 'bg-gray-50'} rounded-xl p-4`}>
                         <h3 className={`font-semibold ${t.text} mb-3 flex items-center gap-2`}><Award className="w-4 h-4 text-violet-400" />Logos ({selectedProfile.data.logos?.length ?? 0})</h3>
                         <div className="flex flex-wrap gap-3">
@@ -1125,7 +1237,7 @@ export default function EmployerProfilePro() {
                     )}
 
                     {/* Colors */}
-                    {(selectedProfile.data.colors?.length ?? 0) > 0 && (
+                    {(selectedProfile.data.colors?.length ?? 0) > 0 && !selectedProfile.data.jobAd && (
                       <div className={`${darkMode ? 'bg-white/5' : 'bg-gray-50'} rounded-xl p-4`}>
                         <h3 className={`font-semibold ${t.text} mb-3 flex items-center gap-2`}><Palette className="w-4 h-4 text-pink-400" />Colors ({selectedProfile.data.colors?.length ?? 0})</h3>
                         <div className="flex flex-wrap gap-2">
@@ -1141,7 +1253,7 @@ export default function EmployerProfilePro() {
                     )}
 
                     {/* Fonts */}
-                    {(selectedProfile.data.fonts?.length ?? 0) > 0 && (
+                    {(selectedProfile.data.fonts?.length ?? 0) > 0 && !selectedProfile.data.jobAd && (
                       <div className={`${darkMode ? 'bg-white/5' : 'bg-gray-50'} rounded-xl p-4`}>
                         <h3 className={`font-semibold ${t.text} mb-3 flex items-center gap-2`}><Type className="w-4 h-4 text-orange-400" />Fonts ({selectedProfile.data.fonts?.length ?? 0})</h3>
                         <div className="flex flex-wrap gap-2">
@@ -1153,7 +1265,7 @@ export default function EmployerProfilePro() {
                     )}
 
                     {/* Links */}
-                    {(selectedProfile.data.links?.length ?? 0) > 0 && (
+                    {(selectedProfile.data.links?.length ?? 0) > 0 && !selectedProfile.data.jobAd && (
                       <div className={`${darkMode ? 'bg-white/5' : 'bg-gray-50'} rounded-xl p-4`}>
                         <h3 className={`font-semibold ${t.text} mb-3 flex items-center gap-2`}><Link2 className="w-4 h-4 text-blue-400" />Social Links ({selectedProfile.data.links?.length ?? 0})</h3>
                         <div className="space-y-2">
