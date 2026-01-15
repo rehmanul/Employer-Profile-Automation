@@ -81,23 +81,36 @@ export default function EmployerProfilePro() {
     if (theme) setDarkMode(theme === 'dark');
   }, []);
 
-  // Save
-  const saveProfiles = useCallback((data: Profile[]) => {
-    localStorage.setItem('employer_profiles_v3', JSON.stringify(data));
-    setProfiles(data);
-  }, []);
-
-  // Theme
-  useEffect(() => {
-    localStorage.setItem('theme', darkMode ? 'dark' : 'light');
-  }, [darkMode]);
-
   // Toast
   const showToast = useCallback((type: Toast['type'], message: string) => {
     const id = Date.now().toString();
     setToasts(prev => [...prev, { id, type, message }]);
     setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 4000);
   }, []);
+
+  // Save with functional update support to avoid stale closures
+  const updateProfilesState = useCallback((updater: (prev: Profile[]) => Profile[]) => {
+    setProfiles(prev => {
+      const newState = updater(prev);
+      try {
+        localStorage.setItem('employer_profiles_v3', JSON.stringify(newState));
+      } catch (e) {
+        console.error('Failed to save to localStorage', e);
+        showToast('error', 'Storage full - failed to save data');
+      }
+      return newState;
+    });
+  }, [showToast]);
+
+  // Legacy save wrapper for compatibility
+  const saveProfiles = useCallback((data: Profile[]) => {
+    updateProfilesState(() => data);
+  }, [updateProfilesState]);
+
+  // Theme
+  useEffect(() => {
+    localStorage.setItem('theme', darkMode ? 'dark' : 'light');
+  }, [darkMode]);
 
   // Copy
   const copyToClipboard = useCallback((text: string, id: string) => {
@@ -192,8 +205,7 @@ export default function EmployerProfilePro() {
       createdAt: new Date().toISOString()
     };
 
-    const updated = [newProfile, ...profiles];
-    saveProfiles(updated);
+    updateProfilesState(prev => [newProfile, ...prev]);
     setGenerating(true);
     showToast('info', 'Starting generation...');
 
@@ -228,26 +240,50 @@ export default function EmployerProfilePro() {
         body: JSON.stringify(payload)
       });
 
+      // Clear interval immediately when response returns
       clearInterval(interval);
+      setProgress({ step: 'Processing response...', percent: 100 });
+
       let data = {};
-      try { data = await response.json(); } catch { data = { success: true }; }
+      const responseText = await response.text();
+      try {
+        data = JSON.parse(responseText);
+      } catch {
+        // Handle non-JSON response (e.g., "Accepted")
+        console.warn('Response is not JSON:', responseText);
+        data = { success: true, raw: responseText };
+      }
+
+      if (!response.ok) {
+        throw new Error(response.statusText || 'Webhook failed');
+      }
 
       const normalizedData = {
         ...(typeof data === 'object' && data ? data : {}),
         images: normalizeImages((data as { images?: unknown }).images, scrapedImages)
       };
 
-      const idx = updated.findIndex(p => p.id === newProfile.id);
-      updated[idx] = { ...newProfile, status: 'completed', data: normalizedData, completedAt: new Date().toISOString() };
-      saveProfiles(updated);
+      updateProfilesState(prev => {
+        const idx = prev.findIndex(p => p.id === newProfile.id);
+        if (idx === -1) return prev; // Profile was deleted
+        const next = [...prev];
+        next[idx] = { ...newProfile, status: 'completed', data: normalizedData, completedAt: new Date().toISOString() };
+        return next;
+      });
+
       setUrl('');
       setView('table');
       showToast('success', 'Profile generated!');
     } catch (err: any) {
       clearInterval(interval);
-      const idx = updated.findIndex(p => p.id === newProfile.id);
-      updated[idx] = { ...newProfile, status: 'failed', error: err.message };
-      saveProfiles(updated);
+      console.error('Generation error:', err);
+      updateProfilesState(prev => {
+        const idx = prev.findIndex(p => p.id === newProfile.id);
+        if (idx === -1) return prev;
+        const next = [...prev];
+        next[idx] = { ...newProfile, status: 'failed', error: err.message || 'Unknown error' };
+        return next;
+      });
       showToast('error', `Failed: ${err.message}`);
     } finally {
       setGenerating(false);
@@ -257,7 +293,7 @@ export default function EmployerProfilePro() {
 
   // Delete
   const deleteProfile = (id: string) => {
-    saveProfiles(profiles.filter(p => p.id !== id));
+    updateProfilesState(prev => prev.filter(p => p.id !== id));
     if (selectedProfile?.id === id) { setSelectedProfile(null); setView('table'); }
     showToast('success', 'Deleted');
   };
@@ -266,7 +302,7 @@ export default function EmployerProfilePro() {
   const bulkDelete = () => {
     if (selectedRows.size === 0) return;
     if (!confirm(`Delete ${selectedRows.size} profiles?`)) return;
-    saveProfiles(profiles.filter(p => !selectedRows.has(p.id)));
+    updateProfilesState(prev => prev.filter(p => !selectedRows.has(p.id)));
     setSelectedRows(new Set());
     showToast('success', `Deleted ${selectedRows.size} profiles`);
   };
@@ -318,7 +354,7 @@ export default function EmployerProfilePro() {
       try {
         const data = JSON.parse(ev.target?.result as string);
         if (Array.isArray(data)) {
-          saveProfiles([...data, ...profiles]);
+          updateProfilesState(prev => [...data, ...prev]);
           showToast('success', `Imported ${data.length} profiles`);
         }
       } catch { showToast('error', 'Invalid file'); }
