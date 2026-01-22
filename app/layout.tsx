@@ -25,6 +25,9 @@ export const metadata: Metadata = {
     type: 'website',
     locale: 'fr_FR',
   },
+  other: {
+    google: 'notranslate',
+  },
 }
 
 export const viewport = {
@@ -39,11 +42,11 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="fr" className={`dark ${bodyFont.variable} ${displayFont.variable}`}>
+    <html lang="fr" className={`dark ${bodyFont.variable} ${displayFont.variable}`} translate="no">
       <head>
         <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏢</text></svg>" />
       </head>
-      <body className="antialiased bg-[#0a0e27] text-white">{children}</body>
+      <body className="antialiased bg-[#0a0e27] text-white notranslate">{children}</body>
     </html>
   )
 }
