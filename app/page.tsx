@@ -148,15 +148,16 @@ export default function EmployerProfilePro() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ url: targetUrl })
       });
-      if (!response.ok) return { images: [], text: "", links: [] };
+      if (!response.ok) return { images: [], logos: [], text: "", links: [] };
       const payload = await response.json();
       return {
         images: Array.isArray(payload.images) ? payload.images.filter(Boolean) : [],
+        logos: Array.isArray(payload.logos) ? payload.logos : [],
         text: payload.text || "",
         links: Array.isArray(payload.links) ? payload.links : []
       };
     } catch {
-      return { images: [], text: "", links: [] };
+      return { images: [], logos: [], text: "", links: [] };
     }
   }, []);
 
@@ -265,7 +266,7 @@ export default function EmployerProfilePro() {
     }, 1200);
 
     // Scrape Site
-    const { images: initialScrapedImages, text: scrapedText, links: scrapedLinks } = await scrapeImages(normalizedUrl);
+    const { images: initialScrapedImages, logos: initialScrapedLogos, text: scrapedText, links: scrapedLinks } = await scrapeImages(normalizedUrl);
     let allImages = [...initialScrapedImages];
 
     // Fallback: Google Image Search if few images found and API keys are present
@@ -317,7 +318,9 @@ export default function EmployerProfilePro() {
 
       const normalizedData = {
         ...(typeof data === 'object' && data ? data : {}),
-        images: normalizeImages((data as { images?: unknown }).images, allImages)
+        images: normalizeImages((data as { images?: unknown }).images, allImages),
+        logos: (data as any).logos?.length ? (data as any).logos :
+               (initialScrapedLogos.length > 0 ? initialScrapedLogos.map(url => ({ type: 'fetched', formats: [{ src: url, format: formatFromUrl(url) }] })) : [])
       };
 
       updateProfilesState(prev => {
@@ -870,29 +873,6 @@ export default function EmployerProfilePro() {
                 </div>
               </div>
             </div>
-            {galleryOpen && imageUrls.length > 0 && (
-              <div className="fixed inset-0 z-[120] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4" onClick={closeGallery}>
-                <div className="relative w-full max-w-5xl" onClick={e => e.stopPropagation()}>
-                  <img src={imageUrls[galleryIndex]} alt="" className="w-full max-h-[80vh] object-contain rounded-2xl shadow-2xl shadow-black/60" />
-                  <button onClick={closeGallery} className="absolute top-4 right-4 p-2 rounded-full bg-black/60 text-white/80 hover:text-white">
-                    <X className="w-5 h-5" />
-                  </button>
-                  {imageUrls.length > 1 && (
-                    <>
-                      <button onClick={showPrev} className="absolute left-3 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/60 text-white/80 hover:text-white">
-                        <ChevronLeft className="w-6 h-6" />
-                      </button>
-                      <button onClick={showNext} className="absolute right-3 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/60 text-white/80 hover:text-white">
-                        <ChevronRight className="w-6 h-6" />
-                      </button>
-                    </>
-                  )}
-                  <div className="mt-3 text-center text-sm text-white/70">
-                    {galleryIndex + 1} / {imageUrls.length}
-                  </div>
-                </div>
-              </div>
-            )}
           </div>
         )}
 
@@ -1306,6 +1286,31 @@ export default function EmployerProfilePro() {
                 )}
 
                 <p className={`text-xs ${t.muted}`}>Created: {new Date(selectedProfile.createdAt).toLocaleString()}</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Global Gallery Modal */}
+        {galleryOpen && imageUrls.length > 0 && (
+          <div className="fixed inset-0 z-[120] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4" onClick={closeGallery}>
+            <div className="relative w-full max-w-5xl" onClick={e => e.stopPropagation()}>
+              <img src={imageUrls[galleryIndex]} alt="" className="w-full max-h-[80vh] object-contain rounded-2xl shadow-2xl shadow-black/60" />
+              <button onClick={closeGallery} className="absolute top-4 right-4 p-2 rounded-full bg-black/60 text-white/80 hover:text-white">
+                <X className="w-5 h-5" />
+              </button>
+              {imageUrls.length > 1 && (
+                <>
+                  <button onClick={showPrev} className="absolute left-3 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/60 text-white/80 hover:text-white">
+                    <ChevronLeft className="w-6 h-6" />
+                  </button>
+                  <button onClick={showNext} className="absolute right-3 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/60 text-white/80 hover:text-white">
+                    <ChevronRight className="w-6 h-6" />
+                  </button>
+                </>
+              )}
+              <div className="mt-3 text-center text-sm text-white/70">
+                {galleryIndex + 1} / {imageUrls.length}
               </div>
             </div>
           </div>
