@@ -422,61 +422,60 @@ const getPageUrls = async (startUrl: string) => {
 
 const selectImages = (candidates: Candidate[]) => {
   const sorted = [...candidates].sort((a, b) => b.score - a.score);
-  const selected: Candidate[] = [];
+  const selectedImages: Candidate[] = [];
+  const selectedLogos: string[] = [];
   const selectedKeys = new Set<string>();
-  const tagOrder = [...REQUIRED_TAGS, ...OPTIONAL_TAGS];
-  let logoCount = 0;
-  let heroCount = 0;
 
-  const isLogoCandidate = (candidate: Candidate) => candidate.tags.has('logo');
-  const isHeroCandidate = (candidate: Candidate) => candidate.tags.has('hero');
-  const addSelection = (candidate: Candidate) => {
-    selected.push(candidate);
-    selectedKeys.add(candidate.key);
-    if (isLogoCandidate(candidate)) logoCount += 1;
-    if (isHeroCandidate(candidate)) heroCount += 1;
-  };
-
-  const pickCandidate = (tag: string, allowLogo: boolean) => {
-    return sorted.find(item =>
-      item.tags.has(tag) &&
-      !selectedKeys.has(item.key) &&
-      (allowLogo || !isLogoCandidate(item))
-    );
-  };
-
-  const logoCandidate = pickCandidate('logo', true);
-  if (logoCandidate) addSelection(logoCandidate);
-
-  const heroCandidate = pickCandidate('hero', false) || pickCandidate('hero', true);
-  if (heroCandidate && !selectedKeys.has(heroCandidate.key)) addSelection(heroCandidate);
-
-  for (const tag of tagOrder) {
-    if (selected.length >= MAX_IMAGES) break;
-    const candidate = pickCandidate(tag, false) || pickCandidate(tag, true);
-    if (!candidate) continue;
-    if (isLogoCandidate(candidate) && logoCount >= MAX_LOGOS) continue;
-    if (isHeroCandidate(candidate) && heroCount >= MAX_HERO) continue;
-    if (!selectedKeys.has(candidate.key)) addSelection(candidate);
-  }
-
-  for (const candidate of sorted) {
-    if (selected.length >= MAX_IMAGES) break;
-    if (selectedKeys.has(candidate.key)) continue;
-    if (isLogoCandidate(candidate) && logoCount >= MAX_LOGOS) continue;
-    if (isHeroCandidate(candidate) && heroCount >= MAX_HERO) continue;
-    addSelection(candidate);
-  }
-
-  if (selected.length < MAX_IMAGES) {
-    for (const candidate of sorted) {
-      if (selected.length >= MAX_IMAGES) break;
-      if (selectedKeys.has(candidate.key)) continue;
-      addSelection(candidate);
+  // 1. Pick Logos
+  for (const cand of sorted) {
+    if (cand.tags.has('logo')) {
+      if (selectedLogos.length < MAX_LOGOS && !selectedKeys.has(cand.key)) {
+        selectedLogos.push(cand.url);
+        selectedKeys.add(cand.key);
+      }
     }
   }
 
-  return selected.slice(0, MAX_IMAGES).map(item => item.url);
+  // 2. Pick Images (Heroes and others)
+  const tagOrder = ['hero', 'about', 'career', 'success', 'team', 'office', 'culture'];
+
+  const addImage = (cand: Candidate) => {
+    if (selectedImages.length < MAX_IMAGES && !selectedKeys.has(cand.key)) {
+      selectedImages.push(cand);
+      selectedKeys.add(cand.key);
+    }
+  };
+
+  // Heroes first (non-logos)
+  const heroes = sorted.filter(c => c.tags.has('hero') && !c.tags.has('logo'));
+  for (const hero of heroes) {
+    addImage(hero);
+    if (selectedImages.length >= 3) break; // Limit initial heroes
+  }
+
+  // Then by tags
+  for (const tag of tagOrder) {
+    if (selectedImages.length >= MAX_IMAGES) break;
+    const candidatesForTag = sorted.filter(c => c.tags.has(tag) && !c.tags.has('logo'));
+    // Pick best one for this tag
+    for (const cand of candidatesForTag) {
+      addImage(cand);
+      break;
+    }
+  }
+
+  // Fill the rest with best remaining non-logos
+  for (const cand of sorted) {
+    if (selectedImages.length >= MAX_IMAGES) break;
+    if (!cand.tags.has('logo')) {
+      addImage(cand);
+    }
+  }
+
+  return {
+    images: selectedImages.map(c => c.url),
+    logos: selectedLogos
+  };
 };
 
 // --- New Features: Text & Socials ---
@@ -580,8 +579,10 @@ export async function POST(req: NextRequest) {
   // Limit text size to avoid payload issues
   if (bestText.length > 50000) bestText = bestText.substring(0, 50000);
 
+  const selected = selectImages(Array.from(candidates.values()));
   return NextResponse.json({
-      images: selectImages(Array.from(candidates.values())),
+      images: selected.images,
+      logos: selected.logos,
       text: bestText,
       links: Array.from(socialLinks.values())
   });
