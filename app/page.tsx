@@ -64,6 +64,8 @@ export default function EmployerProfilePro() {
   const [generating, setGenerating] = useState(false);
   const [progress, setProgress] = useState({ step: '', percent: 0 });
   const [webhookUrl, setWebhookUrl] = useState('https://hook.eu2.make.com/8xsf9sha1e3c3bdznz5sii2e9j10wpi5');
+  const [googleApiKey, setGoogleApiKey] = useState('');
+  const [googleCx, setGoogleCx] = useState('');
 
   // UI
   const [darkMode, setDarkMode] = useState(true);
@@ -79,7 +81,26 @@ export default function EmployerProfilePro() {
     if (stored) setProfiles(JSON.parse(stored));
     const theme = localStorage.getItem('theme');
     if (theme) setDarkMode(theme === 'dark');
+    const storedWebhook = localStorage.getItem('webhook_url');
+    if (storedWebhook) setWebhookUrl(storedWebhook);
+    const storedGoogleApiKey = localStorage.getItem('google_api_key');
+    if (storedGoogleApiKey) setGoogleApiKey(storedGoogleApiKey);
+    const storedGoogleCx = localStorage.getItem('google_cx');
+    if (storedGoogleCx) setGoogleCx(storedGoogleCx);
   }, []);
+
+  // Save settings when changed
+  useEffect(() => {
+    localStorage.setItem('webhook_url', webhookUrl);
+  }, [webhookUrl]);
+
+  useEffect(() => {
+    localStorage.setItem('google_api_key', googleApiKey);
+  }, [googleApiKey]);
+
+  useEffect(() => {
+    localStorage.setItem('google_cx', googleCx);
+  }, [googleCx]);
 
   // Toast
   const showToast = useCallback((type: Toast['type'], message: string) => {
@@ -127,10 +148,27 @@ export default function EmployerProfilePro() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ url: targetUrl })
       });
-      if (!response.ok) return [];
+      if (!response.ok) return { images: [], text: "", links: [] };
       const payload = await response.json();
-      return Array.isArray(payload.images) ? payload.images.filter(Boolean) : [];
+      return {
+        images: Array.isArray(payload.images) ? payload.images.filter(Boolean) : [],
+        text: payload.text || "",
+        links: Array.isArray(payload.links) ? payload.links : []
+      };
     } catch {
+      return { images: [], text: "", links: [] };
+    }
+  }, []);
+
+  const googleImageSearch = useCallback(async (query: string, apiKey: string, cx: string) => {
+    try {
+      const url = `https://www.googleapis.com/customsearch/v1?q=${encodeURIComponent(query)}&cx=${cx}&key=${apiKey}&searchType=image&num=10&imgSize=large`;
+      const response = await fetch(url);
+      if (!response.ok) return [];
+      const data = await response.json();
+      return data.items?.map((item: any) => item.link) || [];
+    } catch (e) {
+      console.error("Google Image Search failed", e);
       return [];
     }
   }, []);
@@ -212,8 +250,8 @@ export default function EmployerProfilePro() {
     const steps = [
       { step: 'Connecting...', percent: 10 },
       { step: 'Extracting domain...', percent: 20 },
-      { step: 'Scraping images...', percent: 35 },
-      { step: 'Creating folder...', percent: 50 },
+      { step: 'Scraping content...', percent: 35 },
+      { step: 'Analyzing text...', percent: 50 },
       { step: 'Fetching brand data...', percent: 65 },
       { step: 'Processing logos...', percent: 78 },
       { step: 'Extracting colors...', percent: 88 },
@@ -226,12 +264,31 @@ export default function EmployerProfilePro() {
       if (stepIdx < steps.length) { setProgress(steps[stepIdx]); stepIdx++; }
     }, 1200);
 
-    const scrapedImages = await scrapeImages(normalizedUrl);
+    // Scrape Site
+    const { images: initialScrapedImages, text: scrapedText, links: scrapedLinks } = await scrapeImages(normalizedUrl);
+    let allImages = [...initialScrapedImages];
+
+    // Fallback: Google Image Search if few images found and API keys are present
+    if (allImages.length < 5 && googleApiKey && googleCx) {
+        try {
+            const domain = new URL(normalizedUrl).hostname;
+            const companyName = domain.replace('www.', '').split('.')[0];
+            const query = `site:${domain} team OR office OR employees OR working`;
+            const googleImages = await googleImageSearch(query, googleApiKey, googleCx);
+            allImages = [...allImages, ...googleImages];
+            showToast('info', `Fetched ${googleImages.length} images from Google`);
+        } catch (e) {
+            console.error('Google Fallback failed', e);
+        }
+    }
+
     const payload: Record<string, unknown> = {
       website: normalizedUrl,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      description: scrapedText, // Pass scraped text for better benefit matching
+      links: scrapedLinks // Pass scraped social links
     };
-    if (scrapedImages.length > 0) payload.images = buildImagePayload(scrapedImages);
+    if (allImages.length > 0) payload.images = buildImagePayload(allImages);
 
     try {
       const response = await fetch(webhookUrl, {
@@ -260,7 +317,7 @@ export default function EmployerProfilePro() {
 
       const normalizedData = {
         ...(typeof data === 'object' && data ? data : {}),
-        images: normalizeImages((data as { images?: unknown }).images, scrapedImages)
+        images: normalizeImages((data as { images?: unknown }).images, allImages)
       };
 
       updateProfilesState(prev => {
@@ -1266,6 +1323,17 @@ export default function EmployerProfilePro() {
                 <div>
                   <label className={`block text-sm font-medium ${t.text} mb-2`}>Webhook URL</label>
                   <input type="url" value={webhookUrl} onChange={e => setWebhookUrl(e.target.value)} className={`w-full px-4 py-3 ${t.input} border-2 rounded-xl focus:ring-2 focus:ring-violet-500/50`} />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                    <div>
+                        <label className={`block text-sm font-medium ${t.text} mb-2`}>Google API Key</label>
+                        <input type="password" value={googleApiKey} onChange={e => setGoogleApiKey(e.target.value)} placeholder="AIza..." className={`w-full px-4 py-3 ${t.input} border-2 rounded-xl focus:ring-2 focus:ring-violet-500/50`} />
+                    </div>
+                    <div>
+                        <label className={`block text-sm font-medium ${t.text} mb-2`}>Google Search Engine ID (CX)</label>
+                        <input type="text" value={googleCx} onChange={e => setGoogleCx(e.target.value)} placeholder="012345..." className={`w-full px-4 py-3 ${t.input} border-2 rounded-xl focus:ring-2 focus:ring-violet-500/50`} />
+                    </div>
                 </div>
 
                 <div>
