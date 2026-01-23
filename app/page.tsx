@@ -320,7 +320,7 @@ export default function EmployerProfilePro() {
         ...(typeof data === 'object' && data ? data : {}),
         images: normalizeImages((data as { images?: unknown }).images, allImages),
         logos: (data as any).logos?.length ? (data as any).logos :
-               (initialScrapedLogos.length > 0 ? initialScrapedLogos.map(url => ({ type: 'fetched', formats: [{ src: url, format: formatFromUrl(url) }] })) : [])
+               (initialScrapedLogos.length > 0 ? initialScrapedLogos.map((url: string) => ({ type: 'fetched', formats: [{ src: url, format: formatFromUrl(url) }] })) : [])
       };
 
       updateProfilesState(prev => {
