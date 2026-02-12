@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-const MAX_IMAGES = 10;
+const MAX_IMAGES = 15;
 const MAX_PAGES = 15; // Reduced from 80 to avoid timeouts if we process text
 const MAX_CANDIDATES = 240;
 const MAX_LOGOS = 2;
@@ -9,7 +9,7 @@ const FETCH_TIMEOUT_MS = 10000;
 const USER_AGENT = 'Mozilla/5.0 (compatible; EmployerProfileAutomation/1.0)';
 const IMAGE_EXT_RE = /\.(jpg|jpeg|png|webp|avif|gif)(?:$|[?#])/i;
 const SVG_EXT_RE = /\.svg(?:$|[?#])/i;
-const SMALL_IMAGE_THRESHOLD = 120;
+const SMALL_IMAGE_THRESHOLD = 500;
 const LARGE_IMAGE_THRESHOLD = 800;
 const HERO_HEIGHT_THRESHOLD = 400;
 
@@ -183,7 +183,7 @@ const scoreFromText = (text: string, tags: Set<string>) => {
 const applySizeScore = (score: number, tags: Set<string>, width?: number, height?: number) => {
   const maxDim = Math.max(width || 0, height || 0);
   if (maxDim >= LARGE_IMAGE_THRESHOLD) score += 6;
-  if (maxDim > 0 && maxDim <= SMALL_IMAGE_THRESHOLD) score -= 6;
+  if (maxDim > 0 && maxDim < SMALL_IMAGE_THRESHOLD && !tags.has('logo')) score -= 100;
   if ((width || 0) >= LARGE_IMAGE_THRESHOLD && (height || 0) >= HERO_HEIGHT_THRESHOLD) {
     tags.add('hero');
     score += 4;
