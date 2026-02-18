@@ -161,18 +161,19 @@ export default function EmployerProfilePro() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ url: targetUrl, additionalUrl: addUrl })
       });
-      if (!response.ok) return { images: [], logos: [], text: "", links: [], benefits: [], hrContact: null };
+      if (!response.ok) return { images: [], logos: [], text: "", title: "", links: [], benefits: [], hrContact: null };
       const payload = await response.json();
       return {
         images: Array.isArray(payload.images) ? payload.images.filter(Boolean) : [],
         logos: Array.isArray(payload.logos) ? payload.logos : [],
         text: payload.text || "",
+        title: payload.title || "",
         links: Array.isArray(payload.links) ? payload.links : [],
         benefits: Array.isArray(payload.benefits) ? payload.benefits : [],
         hrContact: payload.hrContact || null
       };
     } catch {
-      return { images: [], logos: [], text: "", links: [], benefits: [], hrContact: null };
+      return { images: [], logos: [], text: "", title: "", links: [], benefits: [], hrContact: null };
     }
   }, []);
 
@@ -285,6 +286,7 @@ export default function EmployerProfilePro() {
         images: initialScrapedImages,
         logos: initialScrapedLogos,
         text: scrapedText,
+        title: scrapedTitle,
         links: scrapedLinks,
         benefits: scrapedBenefits,
         hrContact: scrapedHrContact
@@ -350,6 +352,10 @@ export default function EmployerProfilePro() {
 
       const normalizedData = {
         ...(typeof data === 'object' && data ? data : {}),
+        name: (data as any).name || scrapedTitle || new URL(normalizedUrl).hostname,
+        description: (data as any).description || extendedDescription,
+        matchedBenefits: (data as any).matchedBenefits || scrapedBenefits.join(', '),
+        links: (data as any).links?.length ? (data as any).links : scrapedLinks,
         images: normalizeImages((data as { images?: unknown }).images, allImages),
         logos: (data as any).logos?.length ? (data as any).logos :
                (initialScrapedLogos.length > 0 ? initialScrapedLogos.map((url: string) => ({ type: 'fetched', formats: [{ src: url, format: formatFromUrl(url) }] })) : [])

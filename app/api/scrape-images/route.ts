@@ -565,6 +565,7 @@ export async function POST(req: NextRequest) {
     const candidates = new Map<string, Candidate>();
     const socialLinks = new Map<string, SocialLink>();
     let bestText = "";
+    let bestTitle = "";
     let bestTextScore = -1;
     const allBenefits = new Set<string>();
     let bestHrContact: string | null = null;
@@ -572,6 +573,11 @@ export async function POST(req: NextRequest) {
     for (const pageUrl of pageUrls) {
       const html = await fetchText(pageUrl);
       if (!html) continue;
+
+      if (!bestTitle) {
+        const $ = cheerio.load(html);
+        bestTitle = $('title').text().trim();
+      }
 
       // Images
       extractImageCandidates(html, pageUrl, candidates);
@@ -624,6 +630,7 @@ export async function POST(req: NextRequest) {
         images: selected.images,
         logos: selected.logos,
         text: bestText,
+        title: bestTitle,
         links: Array.from(socialLinks.values()),
         benefits: Array.from(allBenefits),
         hrContact: bestHrContact
@@ -634,6 +641,7 @@ export async function POST(req: NextRequest) {
         images: [],
         logos: [],
         text: "",
+        title: "",
         links: [],
         benefits: [],
         hrContact: null,
