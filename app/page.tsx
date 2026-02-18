@@ -37,6 +37,7 @@ export default function EmployerProfilePro() {
 
   // Form
   const [url, setUrl] = useState('');
+  const [additionalUrl, setAdditionalUrl] = useState('');
   const [generating, setGenerating] = useState(false);
   const [progress, setProgress] = useState({ step: '', percent: 0 });
   const [webhookUrl, setWebhookUrl] = useState('https://hook.eu2.make.com/8xsf9sha1e3c3bdznz5sii2e9j10wpi5');
@@ -153,23 +154,25 @@ export default function EmployerProfilePro() {
     showToast('success', 'Copied!');
   }, [showToast]);
 
-  const scrapeImages = useCallback(async (targetUrl: string) => {
+  const scrapeImages = useCallback(async (targetUrl: string, addUrl?: string) => {
     try {
       const response = await fetch('/api/scrape-images', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url: targetUrl })
+        body: JSON.stringify({ url: targetUrl, additionalUrl: addUrl })
       });
-      if (!response.ok) return { images: [], logos: [], text: "", links: [] };
+      if (!response.ok) return { images: [], logos: [], text: "", links: [], benefits: [], hrContact: null };
       const payload = await response.json();
       return {
         images: Array.isArray(payload.images) ? payload.images.filter(Boolean) : [],
         logos: Array.isArray(payload.logos) ? payload.logos : [],
         text: payload.text || "",
-        links: Array.isArray(payload.links) ? payload.links : []
+        links: Array.isArray(payload.links) ? payload.links : [],
+        benefits: Array.isArray(payload.benefits) ? payload.benefits : [],
+        hrContact: payload.hrContact || null
       };
     } catch {
-      return { images: [], logos: [], text: "", links: [] };
+      return { images: [], logos: [], text: "", links: [], benefits: [], hrContact: null };
     }
   }, []);
 
@@ -278,7 +281,15 @@ export default function EmployerProfilePro() {
     }, 1200);
 
     // Scrape Site
-    const { images: initialScrapedImages, logos: initialScrapedLogos, text: scrapedText, links: scrapedLinks } = await scrapeImages(normalizedUrl);
+    const {
+        images: initialScrapedImages,
+        logos: initialScrapedLogos,
+        text: scrapedText,
+        links: scrapedLinks,
+        benefits: scrapedBenefits,
+        hrContact: scrapedHrContact
+    } = await scrapeImages(normalizedUrl, additionalUrl.trim());
+
     let allImages = [...initialScrapedImages];
 
     // Fallback: Google Image Search if few images found and API keys are present
@@ -295,11 +306,20 @@ export default function EmployerProfilePro() {
         }
     }
 
+    // Append Benefits and HR info to description for Make.com
+    let extendedDescription = scrapedText;
+    if (scrapedBenefits && scrapedBenefits.length > 0) {
+        extendedDescription += `\n\n[DETECTED BENEFITS]\n${scrapedBenefits.map((b: string) => `- ${b}`).join('\n')}`;
+    }
+    if (scrapedHrContact) {
+        extendedDescription += `\n\n[HR CONTACT]\n${scrapedHrContact}`;
+    }
+
     const payload: Record<string, unknown> = {
       website: normalizedUrl,
       timestamp: new Date().toISOString(),
-      description: scrapedText, // Pass scraped text for better benefit matching
-      links: scrapedLinks // Pass scraped social links
+      description: extendedDescription,
+      links: scrapedLinks
     };
     if (allImages.length > 0) payload.images = buildImagePayload(allImages);
 
@@ -344,6 +364,7 @@ export default function EmployerProfilePro() {
       });
 
       setUrl('');
+      setAdditionalUrl('');
       setView('table');
       showToast('success', 'Profile generated!');
     } catch (err: any) {
@@ -1089,6 +1110,19 @@ export default function EmployerProfilePro() {
                     disabled={generating}
                     className={`w-full px-4 py-3 ${t.input} border-2 rounded-xl focus:ring-2 focus:ring-violet-500/50 disabled:opacity-50`}
                   />
+                </div>
+
+                <div>
+                  <label className={`block text-sm font-medium ${t.text} mb-2`}>Career / Team Page URL (Optional)</label>
+                  <input
+                    type="url"
+                    value={additionalUrl}
+                    onChange={e => setAdditionalUrl(e.target.value)}
+                    placeholder="https://stripe.com/jobs"
+                    disabled={generating}
+                    className={`w-full px-4 py-3 ${t.input} border-2 rounded-xl focus:ring-2 focus:ring-violet-500/50 disabled:opacity-50`}
+                  />
+                  <p className={`text-xs ${t.muted} mt-1`}>Provide a specific page for better benefits and team info.</p>
                 </div>
 
                 <button onClick={generateProfile} disabled={generating || !url.trim()} className="w-full bg-gradient-to-r from-violet-600 to-indigo-600 text-white py-3.5 rounded-xl font-semibold disabled:opacity-50 flex items-center justify-center gap-2 shadow-lg shadow-violet-600/25">

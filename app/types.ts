@@ -1,12 +1,14 @@
-export type ImageItem = {
-  formats?: Array<{ src: string; format: string }>;
-  src?: string;
-} | string;
+export type ImageItem =
+  | {
+      formats?: Array<{ src: string; format: string }>;
+      src?: string;
+    }
+  | string;
 
 export interface Profile {
   id: string;
   url: string;
-  status: 'processing' | 'completed' | 'failed';
+  status: "processing" | "completed" | "failed";
   createdAt: string;
   completedAt?: string;
   error?: string;

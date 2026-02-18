@@ -33,7 +33,7 @@ export default function ProfileEditor({ isOpen, profile, onSave, onClose, darkMo
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        const updated = {
+        const updated: Profile = {
             ...profile,
             data: {
                 ...profile.data,
