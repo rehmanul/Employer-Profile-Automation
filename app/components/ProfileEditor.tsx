@@ -2,17 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { X, Save, AlertCircle } from 'lucide-react';
-
-interface Profile {
-    id: string;
-    url: string;
-    data?: {
-        name?: string;
-        domain?: string;
-        description?: string;
-        // other fields can be added later
-    };
-}
+import { Profile } from '../types';
 
 interface ProfileEditorProps {
     isOpen: boolean;
@@ -43,7 +33,7 @@ export default function ProfileEditor({ isOpen, profile, onSave, onClose, darkMo
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        const updated = {
+        const updated: Profile = {
             ...profile,
             data: {
                 ...profile.data,

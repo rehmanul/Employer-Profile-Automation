@@ -1,13 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import * as cheerio from 'cheerio';
+import { BENEFITS_LIST } from '../../lib/benefits';
 
 const MAX_IMAGES = 15;
 const MAX_PAGES = 15;
 const MAX_CANDIDATES = 240;
 const MAX_LOGOS = 2;
 const MAX_HERO = 3;
-const FETCH_TIMEOUT_MS = 10000;
-const USER_AGENT = 'Mozilla/5.0 (compatible; EmployerProfileAutomation/1.0)';
+const FETCH_TIMEOUT_MS = 15000;
+const USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36';
 const IMAGE_EXT_RE = /\.(jpg|jpeg|png|webp|avif|gif)(?:$|[?#])/i;
 const SVG_EXT_RE = /\.svg(?:$|[?#])/i;
 const SMALL_IMAGE_THRESHOLD = 500;
@@ -380,10 +381,17 @@ const scorePageUrl = (url: string) => {
   return score;
 };
 
-const getPageUrls = async (startUrl: string) => {
+const getPageUrls = async (startUrl: string, additionalUrl?: string | null) => {
   const origin = new URL(startUrl).origin;
   const pages = new Set<string>();
   pages.add(startUrl);
+
+  if (additionalUrl) {
+    try {
+        const normAdditional = normalizeUrl(additionalUrl);
+        if (normAdditional) pages.add(normAdditional);
+    } catch {}
+  }
 
   for (const path of COMMON_PATHS) {
     try {
@@ -406,6 +414,11 @@ const getPageUrls = async (startUrl: string) => {
 
   const selected = scored.slice(0, MAX_PAGES).map(entry => entry.url);
   if (!selected.includes(startUrl)) selected.unshift(startUrl);
+  if (additionalUrl) {
+      const norm = normalizeUrl(additionalUrl);
+      if (norm && !selected.includes(norm)) selected.splice(1, 0, norm); // Insert additional URL right after start URL
+  }
+
   return Array.from(new Set(selected));
 };
 
@@ -503,8 +516,37 @@ const extractSocialLinks = (html: string, links: Map<string, SocialLink>) => {
     });
 };
 
+const extractBenefits = (text: string) => {
+  const lowerText = text.toLowerCase();
+  const found = new Set<string>();
+  for (const benefit of BENEFITS_LIST) {
+    if (lowerText.includes(benefit.toLowerCase())) {
+      found.add(benefit);
+    }
+  }
+  return Array.from(found);
+};
+
+const extractHrContact = (text: string) => {
+  const keywords = ['ansprechpartner', 'kontakt', 'contact', 'recruiter', 'talent acquisition', 'hr manager', 'human resources'];
+  const lower = text.toLowerCase();
+
+  for (const keyword of keywords) {
+    const idx = lower.indexOf(keyword);
+    if (idx !== -1) {
+      // Extract a snippet around the keyword
+      const snippet = text.substring(Math.max(0, idx - 50), Math.min(text.length, idx + 200)).replace(/\s+/g, ' ').trim();
+      // Check if it looks like a name or email
+      if (snippet.includes('@') || snippet.match(/[A-Z][a-z]+ [A-Z][a-z]+/)) {
+         return snippet;
+      }
+    }
+  }
+  return null;
+};
+
 export async function POST(req: NextRequest) {
-  let payload: { url?: string } | null = null;
+  let payload: { url?: string; additionalUrl?: string } | null = null;
   try {
     payload = await req.json();
   } catch {
@@ -512,16 +554,20 @@ export async function POST(req: NextRequest) {
   }
 
   const normalizedUrl = payload?.url ? normalizeUrl(payload.url) : null;
+  const additionalUrl = payload?.additionalUrl ? normalizeUrl(payload.additionalUrl) : null;
+
   if (!normalizedUrl) {
-    return NextResponse.json({ images: [], text: "", links: [] }, { status: 400 });
+    return NextResponse.json({ images: [], text: "", links: [], benefits: [], hrContact: null }, { status: 400 });
   }
 
   try {
-    const pageUrls = await getPageUrls(normalizedUrl);
+    const pageUrls = await getPageUrls(normalizedUrl, additionalUrl);
     const candidates = new Map<string, Candidate>();
     const socialLinks = new Map<string, SocialLink>();
     let bestText = "";
     let bestTextScore = -1;
+    const allBenefits = new Set<string>();
+    let bestHrContact: string | null = null;
 
     for (const pageUrl of pageUrls) {
       const html = await fetchText(pageUrl);
@@ -534,16 +580,40 @@ export async function POST(req: NextRequest) {
       // Socials
       extractSocialLinks(html, socialLinks);
 
-      // Text (prioritize "Career" pages)
+      // Text Extraction
+      const cleanText = extractCleanText(html);
+
+      // Benefits & HR
+      const benefits = extractBenefits(cleanText);
+      benefits.forEach(b => allBenefits.add(b));
+
+      if (!bestHrContact) {
+        const contact = extractHrContact(cleanText);
+        if (contact) bestHrContact = contact;
+      }
+
+      // Best Text scoring (prioritize "Career" pages)
       const pageScore = scorePageUrl(pageUrl);
       if (pageScore > bestTextScore) {
-          bestText = extractCleanText(html);
+          bestText = cleanText;
           bestTextScore = pageScore;
+      }
+
+      // If we are scraping the additional URL, we should definitely consider its text as well
+      // Maybe append it if it's not the best?
+      // Actually, if additional URL is provided, it's likely very relevant.
+      // If the additional URL is processed, let's treat it as high value.
+      if (additionalUrl && pageUrl.includes(new URL(additionalUrl).pathname)) {
+          // If the additional URL text is long enough, it might be better than homepage
+          if (cleanText.length > 500) {
+             // If we already have a best text, maybe append this one?
+             // Or just let the score decide (additional URL usually has good keywords)
+          }
       }
 
       const values = Array.from(candidates.values());
       const hasRequired = REQUIRED_TAGS.every(tag => values.some(item => item.tags.has(tag)));
-      if (candidates.size >= MAX_CANDIDATES && hasRequired && socialLinks.size > 0) break;
+      if (candidates.size >= MAX_CANDIDATES && hasRequired && socialLinks.size > 0 && allBenefits.size > 0) break;
     }
 
     // Limit text size to avoid payload issues
@@ -554,7 +624,9 @@ export async function POST(req: NextRequest) {
         images: selected.images,
         logos: selected.logos,
         text: bestText,
-        links: Array.from(socialLinks.values())
+        links: Array.from(socialLinks.values()),
+        benefits: Array.from(allBenefits),
+        hrContact: bestHrContact
     });
   } catch (error) {
     console.error('Scraping error:', error);
@@ -563,6 +635,8 @@ export async function POST(req: NextRequest) {
         logos: [],
         text: "",
         links: [],
+        benefits: [],
+        hrContact: null,
         error: "Failed to scrape site"
     }, { status: 500 });
   }
