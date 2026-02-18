@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
+import * as cheerio from 'cheerio';
 
 const MAX_IMAGES = 15;
-const MAX_PAGES = 15; // Reduced from 80 to avoid timeouts if we process text
+const MAX_PAGES = 15;
 const MAX_CANDIDATES = 240;
 const MAX_LOGOS = 2;
 const MAX_HERO = 3;
@@ -84,7 +85,6 @@ const NEGATIVE_KEYWORDS: Array<{ keyword: string; weight: number }> = [
 ];
 
 const REQUIRED_TAGS = ['logo', 'hero', 'about', 'career', 'success'];
-const OPTIONAL_TAGS = ['team', 'office', 'culture'];
 
 const COMMON_PATHS = [
   '/about',
@@ -146,12 +146,6 @@ const fetchText = async (url: string) => {
   } finally {
     clearTimeout(timeout);
   }
-};
-
-const getAttribute = (tag: string, name: string) => {
-  const regex = new RegExp(`${name}\\s*=\\s*["']([^"']+)["']`, 'i');
-  const match = tag.match(regex);
-  return match ? match[1] : '';
 };
 
 const getUrlKey = (absoluteUrl: string) => {
@@ -272,28 +266,25 @@ const pickSrcsetUrl = (srcset: string) => {
 };
 
 const extractImageCandidates = (html: string, baseUrl: string, map: Map<string, Candidate>) => {
-  const metaTagRegex = /<meta[^>]+>/gi;
-  const imgTagRegex = /<img[^>]*>/gi;
-  const styleBgRegex = /background-image:\s*url\(['"]?([^'"]+)['"]?\)/gi;
+  const $ = cheerio.load(html);
 
-  let match: RegExpExecArray | null;
-  while ((match = metaTagRegex.exec(html))) {
-    const tag = match[0];
-    const property = (getAttribute(tag, 'property') || getAttribute(tag, 'name')).toLowerCase();
-    if (!['og:image', 'og:image:secure_url', 'twitter:image', 'twitter:image:src'].includes(property)) continue;
-    const content = getAttribute(tag, 'content');
-    if (!content) continue;
-    addCandidate(map, content, baseUrl, { source: 'meta' });
-  }
+  // Meta tags
+  $('meta').each((_, el) => {
+    const property = ($(el).attr('property') || $(el).attr('name') || '').toLowerCase();
+    if (['og:image', 'og:image:secure_url', 'twitter:image', 'twitter:image:src'].includes(property)) {
+      const content = $(el).attr('content');
+      if (content) addCandidate(map, content, baseUrl, { source: 'meta' });
+    }
+  });
 
-  while ((match = imgTagRegex.exec(html))) {
-    const tag = match[0];
-    const src = getAttribute(tag, 'data-src') || getAttribute(tag, 'data-lazy-src') || getAttribute(tag, 'src');
-    const srcset = getAttribute(tag, 'data-srcset') || getAttribute(tag, 'srcset');
-    const alt = getAttribute(tag, 'alt');
-    const className = getAttribute(tag, 'class');
-    const width = Number(getAttribute(tag, 'width')) || undefined;
-    const height = Number(getAttribute(tag, 'height')) || undefined;
+  // Img tags
+  $('img').each((_, el) => {
+    const src = $(el).attr('data-src') || $(el).attr('data-lazy-src') || $(el).attr('src');
+    const srcset = $(el).attr('data-srcset') || $(el).attr('srcset');
+    const alt = $(el).attr('alt') || '';
+    const className = $(el).attr('class') || '';
+    const width = Number($(el).attr('width')) || undefined;
+    const height = Number($(el).attr('height')) || undefined;
 
     if (src) addCandidate(map, src, baseUrl, { source: 'img', alt, className, width, height });
     if (srcset) {
@@ -302,18 +293,16 @@ const extractImageCandidates = (html: string, baseUrl: string, map: Map<string, 
         addCandidate(map, bestSrcset, baseUrl, { source: 'srcset', alt, className, width, height });
       }
     }
-  }
+  });
 
-  // Extract background images from inline styles
-  while ((match = styleBgRegex.exec(html))) {
-    const src = match[1];
-    if (src) {
-        addCandidate(map, src, baseUrl, { source: 'bg' });
+  // Background images in inline styles
+  $('[style*="background-image"]').each((_, el) => {
+    const style = $(el).attr('style');
+    const match = style?.match(/background-image:\s*url\(['"]?([^'"]+)['"]?\)/i);
+    if (match && match[1]) {
+      addCandidate(map, match[1], baseUrl, { source: 'bg' });
     }
-  }
-
-  // Also naive search for style tags (optional, might be heavy)
-  // ... skipping style tags for now to keep it simple, inline styles on divs are more common for hero sections
+  });
 };
 
 const extractJsonImages = (html: string, baseUrl: string, map: Map<string, Candidate>) => {
@@ -478,55 +467,40 @@ const selectImages = (candidates: Candidate[]) => {
   };
 };
 
-// --- New Features: Text & Socials ---
-
 const extractCleanText = (html: string) => {
-  let text = html;
-  // Remove scripts and styles
-  text = text.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gim, " ");
-  text = text.replace(/<style\b[^>]*>[\s\S]*?<\/style>/gim, " ");
-  text = text.replace(/<svg\b[^>]*>[\s\S]*?<\/svg>/gim, " ");
-  text = text.replace(/<head\b[^>]*>[\s\S]*?<\/head>/gim, " ");
-  // Replace block tags with newlines
-  text = text.replace(/<\/(div|p|h[1-6]|li|br|ul|ol|table|tr|td|section|article|header|footer)>/gi, "\n");
-  // Remove all other tags
-  text = text.replace(/<[^>]+>/g, " ");
-  // Decode entities (basic ones)
-  text = text.replace(/&nbsp;/g, " ")
-             .replace(/&amp;/g, "&")
-             .replace(/&lt;/g, "<")
-             .replace(/&gt;/g, ">")
-             .replace(/&quot;/g, "\"");
-  // Collapse whitespace
-  text = text.replace(/\s+/g, " ").trim();
-  return text;
+    const $ = cheerio.load(html);
+    $('script, style, svg, head, noscript, iframe').remove();
+    return $('body').text().replace(/\s+/g, ' ').trim();
 };
 
 const extractSocialLinks = (html: string, links: Map<string, SocialLink>) => {
-    const linkRegex = /href=["'](https?:\/\/(?:www\.)?(?:facebook|linkedin|instagram|twitter|x|xing|kununu|youtube|tiktok)\.[a-z.]+[^"']*)["']/gi;
-    let match: RegExpExecArray | null;
-    while ((match = linkRegex.exec(html))) {
-        const url = match[1];
+    const $ = cheerio.load(html);
+    $('a[href]').each((_, el) => {
+        const url = $(el).attr('href');
+        if (!url) return;
+
         let name = 'Social';
-        if (url.includes('facebook')) name = 'Facebook';
-        else if (url.includes('linkedin')) name = 'LinkedIn';
-        else if (url.includes('instagram')) name = 'Instagram';
-        else if (url.includes('twitter') || url.includes('x.com')) name = 'Twitter';
-        else if (url.includes('xing')) name = 'Xing';
-        else if (url.includes('kununu')) name = 'Kununu';
-        else if (url.includes('youtube')) name = 'YouTube';
-        else if (url.includes('tiktok')) name = 'TikTok';
+        const lower = url.toLowerCase();
+        if (lower.includes('facebook')) name = 'Facebook';
+        else if (lower.includes('linkedin')) name = 'LinkedIn';
+        else if (lower.includes('instagram')) name = 'Instagram';
+        else if (lower.includes('twitter') || lower.includes('x.com')) name = 'Twitter';
+        else if (lower.includes('xing')) name = 'Xing';
+        else if (lower.includes('kununu')) name = 'Kununu';
+        else if (lower.includes('youtube')) name = 'YouTube';
+        else if (lower.includes('tiktok')) name = 'TikTok';
+        else return; // Skip non-social links
 
         // Use normalized URL as key to dedupe
         try {
-            const norm = new URL(url).origin + new URL(url).pathname; // Ignore query params for deduping
+            const norm = new URL(url).origin + new URL(url).pathname;
             if (!links.has(norm)) {
                 links.set(norm, { name, url });
             }
         } catch {
             // ignore
         }
-    }
+    });
 };
 
 export async function POST(req: NextRequest) {
@@ -542,48 +516,54 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ images: [], text: "", links: [] }, { status: 400 });
   }
 
-  const pageUrls = await getPageUrls(normalizedUrl);
-  const candidates = new Map<string, Candidate>();
-  const socialLinks = new Map<string, SocialLink>();
-  let bestText = "";
-  let bestTextScore = -1;
+  try {
+    const pageUrls = await getPageUrls(normalizedUrl);
+    const candidates = new Map<string, Candidate>();
+    const socialLinks = new Map<string, SocialLink>();
+    let bestText = "";
+    let bestTextScore = -1;
 
-  for (const pageUrl of pageUrls) {
-    const html = await fetchText(pageUrl);
-    if (!html) continue;
+    for (const pageUrl of pageUrls) {
+      const html = await fetchText(pageUrl);
+      if (!html) continue;
 
-    // Images
-    extractImageCandidates(html, pageUrl, candidates);
-    extractJsonImages(html, pageUrl, candidates);
+      // Images
+      extractImageCandidates(html, pageUrl, candidates);
+      extractJsonImages(html, pageUrl, candidates);
 
-    // Socials
-    extractSocialLinks(html, socialLinks);
+      // Socials
+      extractSocialLinks(html, socialLinks);
 
-    // Text (prioritize "Career" pages)
-    const pageScore = scorePageUrl(pageUrl);
-    // If this page is a career page, it likely has good benefits info.
-    // Or if it's the home page.
-    // We update bestText if this page seems more relevant than previous ones.
-    if (pageScore > bestTextScore) {
-        bestText = extractCleanText(html);
-        bestTextScore = pageScore;
+      // Text (prioritize "Career" pages)
+      const pageScore = scorePageUrl(pageUrl);
+      if (pageScore > bestTextScore) {
+          bestText = extractCleanText(html);
+          bestTextScore = pageScore;
+      }
+
+      const values = Array.from(candidates.values());
+      const hasRequired = REQUIRED_TAGS.every(tag => values.some(item => item.tags.has(tag)));
+      if (candidates.size >= MAX_CANDIDATES && hasRequired && socialLinks.size > 0) break;
     }
 
-    const values = Array.from(candidates.values());
-    const hasRequired = REQUIRED_TAGS.every(tag => values.some(item => item.tags.has(tag)));
-    // Stop early if we have enough images AND we have visited at least the main career/about pages
-    // (We sorted pageUrls by relevance, so the first few are likely the best)
-    if (candidates.size >= MAX_CANDIDATES && hasRequired && socialLinks.size > 0) break;
+    // Limit text size to avoid payload issues
+    if (bestText.length > 50000) bestText = bestText.substring(0, 50000);
+
+    const selected = selectImages(Array.from(candidates.values()));
+    return NextResponse.json({
+        images: selected.images,
+        logos: selected.logos,
+        text: bestText,
+        links: Array.from(socialLinks.values())
+    });
+  } catch (error) {
+    console.error('Scraping error:', error);
+    return NextResponse.json({
+        images: [],
+        logos: [],
+        text: "",
+        links: [],
+        error: "Failed to scrape site"
+    }, { status: 500 });
   }
-
-  // Limit text size to avoid payload issues
-  if (bestText.length > 50000) bestText = bestText.substring(0, 50000);
-
-  const selected = selectImages(Array.from(candidates.values()));
-  return NextResponse.json({
-      images: selected.images,
-      logos: selected.logos,
-      text: bestText,
-      links: Array.from(socialLinks.values())
-  });
 }
