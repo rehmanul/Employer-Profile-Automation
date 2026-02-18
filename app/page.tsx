@@ -7,8 +7,10 @@ import {
   CheckCircle, Clock, XCircle, Palette, Type, Link2, Upload, Database,
   Moon, Sun, Copy, Check, Zap, Activity, TrendingUp, ChevronDown, ChevronUp,
   Filter, Table, ArrowUpDown, ArrowUp, ArrowDown, Calendar, Building2,
-  ChevronLeft, ChevronRight, Maximize2
+  ChevronLeft, ChevronRight, Maximize2, Pencil
 } from 'lucide-react';
+import OnboardingModal from './components/OnboardingModal';
+import ProfileEditor from './components/ProfileEditor';
 
 type ImageItem = { formats?: Array<{ src: string; format: string }>; src?: string } | string;
 
@@ -74,6 +76,30 @@ export default function EmployerProfilePro() {
   const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
   const [galleryOpen, setGalleryOpen] = useState(false);
   const [galleryIndex, setGalleryIndex] = useState(0);
+  const [suggestions, setSuggestions] = useState<Profile[]>([]);
+  const [editorOpen, setEditorOpen] = useState(false);
+
+  // Autocomplete
+  useEffect(() => {
+    if (!searchTerm || searchTerm.length < 2) {
+      setSuggestions([]);
+      return;
+    }
+    const lower = searchTerm.toLowerCase();
+    const matched = profiles.filter(p =>
+      p.data?.name?.toLowerCase().includes(lower) ||
+      p.data?.domain?.toLowerCase().includes(lower) ||
+      p.url.toLowerCase().includes(lower)
+    ).slice(0, 5);
+    setSuggestions(matched);
+  }, [searchTerm, profiles]);
+
+  const selectSuggestion = (profile: Profile) => {
+    setSearchTerm(profile.data?.name || profile.data?.domain || '');
+    setSuggestions([]);
+    setSelectedProfile(profile);
+    setView('profile');
+  };
 
   // Load data
   useEffect(() => {
@@ -127,6 +153,18 @@ export default function EmployerProfilePro() {
   const saveProfiles = useCallback((data: Profile[]) => {
     updateProfilesState(() => data);
   }, [updateProfilesState]);
+
+  const handleProfileUpdate = useCallback((updatedProfile: Profile) => {
+    updateProfilesState(prev => {
+        const idx = prev.findIndex(p => p.id === updatedProfile.id);
+        if (idx === -1) return prev;
+        const next = [...prev];
+        next[idx] = updatedProfile;
+        return next;
+    });
+    setSelectedProfile(updatedProfile);
+    showToast('success', 'Profile updated');
+  }, [updateProfilesState, showToast]);
 
   // Theme
   useEffect(() => {
@@ -581,6 +619,7 @@ export default function EmployerProfilePro() {
 
   return (
     <div className={`min-h-screen ${t.bg} transition-colors`}>
+      <OnboardingModal />
       {/* Background */}
       {darkMode && (
         <div className="fixed inset-0 overflow-hidden pointer-events-none">
@@ -625,11 +664,11 @@ export default function EmployerProfilePro() {
             <button onClick={() => { setView('dashboard'); setDisplayMode('grid'); }} className={`p-2 rounded-lg ${view === 'dashboard' ? 'bg-violet-600/20 text-violet-400' : t.muted} ${t.hover}`}>
               <Grid className="w-5 h-5" />
             </button>
-            <button onClick={() => setView('settings')} className={`p-2 rounded-lg ${view === 'settings' ? 'bg-violet-600/20 text-violet-400' : t.muted} ${t.hover}`}>
+            <button onClick={() => setView('settings')} title="Settings" className={`p-2 rounded-lg ${view === 'settings' ? 'bg-violet-600/20 text-violet-400' : t.muted} ${t.hover}`}>
               <Settings className="w-5 h-5" />
             </button>
             <button onClick={() => setView('generate')} className="bg-gradient-to-r from-violet-600 to-indigo-600 text-white px-4 py-2 rounded-lg font-medium flex items-center gap-2 shadow-lg shadow-violet-600/25 hover:shadow-xl transition-all">
-              <Plus className="w-4 h-4" />New
+              <Plus className="w-4 h-4" />Create New Profile
             </button>
           </div>
         </div>
@@ -672,6 +711,22 @@ export default function EmployerProfilePro() {
                     onChange={e => setSearchTerm(e.target.value)}
                     className={`w-full pl-10 pr-4 py-2 ${t.input} rounded-lg text-sm border focus:ring-2 focus:ring-violet-500/50`}
                   />
+                  {suggestions.length > 0 && (
+                    <div className={`absolute top-full left-0 right-0 mt-1 ${t.card} border rounded-lg shadow-xl z-50 overflow-hidden`}>
+                      {suggestions.map(s => (
+                        <button key={s.id} onClick={() => selectSuggestion(s)} className={`w-full text-left px-4 py-2 text-sm ${t.hover} flex items-center gap-3`}>
+                           {s.data?.logos?.[0]?.formats?.[0]?.src ? (
+                             <img src={s.data.logos[0].formats[0].src} alt="" className="w-5 h-5 rounded object-contain bg-white/10" />
+                           ) : (
+                             <div className="w-5 h-5 bg-violet-600 rounded flex items-center justify-center text-[10px] text-white font-bold">
+                               {getInitials(s.url)}
+                             </div>
+                           )}
+                           <span className={t.text}>{s.data?.name || s.data?.domain || s.url}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 {/* Filter Toggle */}
@@ -705,10 +760,10 @@ export default function EmployerProfilePro() {
                     </>
                   )}
                   <button onClick={() => exportProfiles(filteredProfiles, 'csv')} className={`px-3 py-2 ${t.hover} ${t.muted} rounded-lg text-sm flex items-center gap-1`}>
-                    <Download className="w-4 h-4" />CSV
+                    <Download className="w-4 h-4" />Export CSV
                   </button>
-                  <button onClick={() => { const s = localStorage.getItem('employer_profiles_v3'); if (s) setProfiles(JSON.parse(s)); showToast('info', 'Refreshed'); }} className={`p-2 ${t.muted} ${t.hover} rounded-lg`}>
-                    <RefreshCw className="w-4 h-4" />
+                  <button onClick={() => { const s = localStorage.getItem('employer_profiles_v3'); if (s) setProfiles(JSON.parse(s)); showToast('info', 'Refreshed'); }} className={`px-3 py-2 ${t.muted} ${t.hover} rounded-lg text-sm flex items-center gap-1`} title="Refresh Data">
+                    <RefreshCw className="w-4 h-4" />Refresh
                   </button>
                 </div>
               </div>
@@ -910,6 +965,22 @@ export default function EmployerProfilePro() {
                     onChange={e => setSearchTerm(e.target.value)}
                     className={`w-full pl-10 pr-4 py-2 ${t.input} rounded-lg text-sm border focus:ring-2 focus:ring-violet-500/50`}
                   />
+                  {suggestions.length > 0 && (
+                    <div className={`absolute top-full left-0 right-0 mt-1 ${t.card} border rounded-lg shadow-xl z-50 overflow-hidden`}>
+                      {suggestions.map(s => (
+                        <button key={s.id} onClick={() => selectSuggestion(s)} className={`w-full text-left px-4 py-2 text-sm ${t.hover} flex items-center gap-3`}>
+                           {s.data?.logos?.[0]?.formats?.[0]?.src ? (
+                             <img src={s.data.logos[0].formats[0].src} alt="" className="w-5 h-5 rounded object-contain bg-white/10" />
+                           ) : (
+                             <div className="w-5 h-5 bg-violet-600 rounded flex items-center justify-center text-[10px] text-white font-bold">
+                               {getInitials(s.url)}
+                             </div>
+                           )}
+                           <span className={t.text}>{s.data?.name || s.data?.domain || s.url}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 {/* Quick Status Filter */}
@@ -923,10 +994,10 @@ export default function EmployerProfilePro() {
                 {/* Actions */}
                 <div className="flex items-center gap-2 ml-auto">
                   <button onClick={() => exportProfiles(filteredProfiles, 'csv')} className={`px-3 py-2 ${t.hover} ${t.muted} rounded-lg text-sm flex items-center gap-1`}>
-                    <Download className="w-4 h-4" />CSV
+                    <Download className="w-4 h-4" />Export CSV
                   </button>
-                  <button onClick={() => { const s = localStorage.getItem('employer_profiles_v3'); if (s) setProfiles(JSON.parse(s)); showToast('info', 'Refreshed'); }} className={`p-2 ${t.muted} ${t.hover} rounded-lg`}>
-                    <RefreshCw className="w-4 h-4" />
+                  <button onClick={() => { const s = localStorage.getItem('employer_profiles_v3'); if (s) setProfiles(JSON.parse(s)); showToast('info', 'Refreshed'); }} className={`px-3 py-2 ${t.muted} ${t.hover} rounded-lg text-sm flex items-center gap-1`} title="Refresh Data">
+                    <RefreshCw className="w-4 h-4" />Refresh
                   </button>
                 </div>
               </div>
@@ -1124,6 +1195,7 @@ export default function EmployerProfilePro() {
                   <div className="flex-1" />
                   {selectedProfile.data?.folderUrl && <a href={selectedProfile.data.folderUrl} target="_blank" className="px-3 py-1.5 bg-blue-500/10 text-blue-400 rounded-lg text-sm font-medium hover:bg-blue-500/20 flex items-center gap-1"><FolderOpen className="w-4 h-4" />Drive</a>}
                   {selectedProfile.data?.docUrl && <a href={selectedProfile.data.docUrl} target="_blank" className="px-3 py-1.5 bg-emerald-500/10 text-emerald-400 rounded-lg text-sm font-medium hover:bg-emerald-500/20 flex items-center gap-1"><FileText className="w-4 h-4" />Doc</a>}
+                  <button onClick={() => setEditorOpen(true)} className="px-3 py-1.5 bg-violet-500/10 text-violet-400 rounded-lg text-sm font-medium hover:bg-violet-500/20 flex items-center gap-1"><Pencil className="w-4 h-4" />Edit</button>
                   <button onClick={() => exportProfiles([selectedProfile], 'json')} className="px-3 py-1.5 bg-violet-500/10 text-violet-400 rounded-lg text-sm font-medium hover:bg-violet-500/20 flex items-center gap-1"><Download className="w-4 h-4" />JSON</button>
                   <button onClick={() => deleteProfile(selectedProfile.id)} className="px-3 py-1.5 bg-red-500/10 text-red-400 rounded-lg text-sm font-medium hover:bg-red-500/20 flex items-center gap-1"><Trash2 className="w-4 h-4" />Delete</button>
                 </div>
@@ -1288,6 +1360,15 @@ export default function EmployerProfilePro() {
                 <p className={`text-xs ${t.muted}`}>Created: {new Date(selectedProfile.createdAt).toLocaleString()}</p>
               </div>
             </div>
+            {editorOpen && (
+              <ProfileEditor
+                isOpen={editorOpen}
+                profile={selectedProfile}
+                onSave={handleProfileUpdate}
+                onClose={() => setEditorOpen(false)}
+                darkMode={darkMode}
+              />
+            )}
           </div>
         )}
 
