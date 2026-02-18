@@ -161,19 +161,22 @@ export default function EmployerProfilePro() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ url: targetUrl, additionalUrl: addUrl })
       });
-      if (!response.ok) return { images: [], logos: [], text: "", title: "", links: [], benefits: [], hrContact: null };
+      if (!response.ok) return { images: [], logos: [], text: "", title: "", description: "", links: [], benefits: [], hrContact: null, colors: [], fonts: [] };
       const payload = await response.json();
       return {
         images: Array.isArray(payload.images) ? payload.images.filter(Boolean) : [],
         logos: Array.isArray(payload.logos) ? payload.logos : [],
         text: payload.text || "",
         title: payload.title || "",
+        description: payload.description || "",
         links: Array.isArray(payload.links) ? payload.links : [],
         benefits: Array.isArray(payload.benefits) ? payload.benefits : [],
-        hrContact: payload.hrContact || null
+        hrContact: payload.hrContact || null,
+        colors: Array.isArray(payload.colors) ? payload.colors : [],
+        fonts: Array.isArray(payload.fonts) ? payload.fonts : []
       };
     } catch {
-      return { images: [], logos: [], text: "", title: "", links: [], benefits: [], hrContact: null };
+      return { images: [], logos: [], text: "", title: "", description: "", links: [], benefits: [], hrContact: null, colors: [], fonts: [] };
     }
   }, []);
 
@@ -287,9 +290,12 @@ export default function EmployerProfilePro() {
         logos: initialScrapedLogos,
         text: scrapedText,
         title: scrapedTitle,
+        description: scrapedDescription,
         links: scrapedLinks,
         benefits: scrapedBenefits,
-        hrContact: scrapedHrContact
+        hrContact: scrapedHrContact,
+        colors: scrapedColors,
+        fonts: scrapedFonts
     } = await scrapeImages(normalizedUrl, additionalUrl.trim());
 
     let allImages = [...initialScrapedImages];
@@ -309,7 +315,10 @@ export default function EmployerProfilePro() {
     }
 
     // Append Benefits and HR info to description for Make.com
-    let extendedDescription = scrapedText;
+    // Use the clean scraped description if available, otherwise fallback to text
+    let descriptionForMake = scrapedDescription || scrapedText;
+    let extendedDescription = descriptionForMake;
+
     if (scrapedBenefits && scrapedBenefits.length > 0) {
         extendedDescription += `\n\n[DETECTED BENEFITS]\n${scrapedBenefits.map((b: string) => `- ${b}`).join('\n')}`;
     }
@@ -353,12 +362,14 @@ export default function EmployerProfilePro() {
       const normalizedData = {
         ...(typeof data === 'object' && data ? data : {}),
         name: (data as any).name || scrapedTitle || new URL(normalizedUrl).hostname,
-        description: (data as any).description || extendedDescription,
+        description: (data as any).description || scrapedDescription || extendedDescription,
         matchedBenefits: (data as any).matchedBenefits || scrapedBenefits.join(', '),
         links: (data as any).links?.length ? (data as any).links : scrapedLinks,
         images: normalizeImages((data as { images?: unknown }).images, allImages),
         logos: (data as any).logos?.length ? (data as any).logos :
-               (initialScrapedLogos.length > 0 ? initialScrapedLogos.map((url: string) => ({ type: 'fetched', formats: [{ src: url, format: formatFromUrl(url) }] })) : [])
+               (initialScrapedLogos.length > 0 ? initialScrapedLogos.map((url: string) => ({ type: 'fetched', formats: [{ src: url, format: formatFromUrl(url) }] })) : []),
+        colors: (data as any).colors?.length ? (data as any).colors : scrapedColors,
+        fonts: (data as any).fonts?.length ? (data as any).fonts : scrapedFonts
       };
 
       updateProfilesState(prev => {
@@ -1177,9 +1188,9 @@ export default function EmployerProfilePro() {
                         {getInitials(selectedProfile.url)}
                       </div>
                     )}
-                    <div>
-                      <h2 className="text-xl font-bold text-white">{selectedProfile.data?.name || selectedProfile.url}</h2>
-                      <p className="text-violet-200 text-sm">{selectedProfile.data?.domain || selectedProfile.url}</p>
+                    <div className="min-w-0 flex-1">
+                      <h2 className="text-xl font-bold text-white truncate max-w-[600px]" title={selectedProfile.data?.name || selectedProfile.url}>{selectedProfile.data?.name || selectedProfile.url}</h2>
+                      <p className="text-violet-200 text-sm truncate">{selectedProfile.data?.domain || selectedProfile.url}</p>
                       <div className="flex flex-wrap gap-2 mt-2 text-xs text-white/70">
                         <span className="px-2 py-1 rounded-full bg-white/10">{imageUrls.length} images</span>
                         <span className="px-2 py-1 rounded-full bg-white/10">{selectedProfile.data?.logos?.length ?? 0} logos</span>

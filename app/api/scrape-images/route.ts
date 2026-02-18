@@ -545,6 +545,84 @@ const extractHrContact = (text: string) => {
   return null;
 };
 
+// --- New Helper Functions ---
+
+const cleanTitle = (title: string, maxLen = 60) => {
+  if (!title) return '';
+
+  // Remove common separators and suffixes often found in titles
+  // e.g. "Company Name | Home", "Company Name - Careers"
+  const separators = [' | ', ' - ', ' : ', ' • ', ' – '];
+  let bestPart = title;
+
+  for (const sep of separators) {
+    if (title.includes(sep)) {
+      const parts = title.split(sep);
+      // Heuristic: The brand name is usually the shortest part, or the first part.
+      // But sometimes it is "Home - Company Name".
+      // Let's assume the first part unless it is "Home" or "Welcome"
+      const first = parts[0].trim();
+      const last = parts[parts.length - 1].trim();
+
+      if (['home', 'welcome', 'startseite', 'index'].includes(first.toLowerCase())) {
+        bestPart = last;
+      } else {
+        bestPart = first; // Default to first part
+      }
+      break;
+    }
+  }
+
+  // Truncate if still too long
+  if (bestPart.length > maxLen) {
+    return bestPart.substring(0, maxLen).trim() + '...';
+  }
+  return bestPart.trim();
+};
+
+const extractMetaDescription = (html: string) => {
+    const $ = cheerio.load(html);
+    let desc = $('meta[property="og:description"]').attr('content') ||
+               $('meta[name="description"]').attr('content') ||
+               $('meta[name="twitter:description"]').attr('content') || '';
+
+    return desc.trim();
+};
+
+// --- Style Extraction Helpers ---
+
+const getBrightness = (hex: string) => {
+  const r = parseInt(hex.substring(1, 3), 16);
+  const g = parseInt(hex.substring(3, 5), 16);
+  const b = parseInt(hex.substring(5, 7), 16);
+  return Math.round(((r * 299) + (g * 587) + (b * 114)) / 1000);
+};
+
+const extractColors = (html: string, colors: Map<string, number>) => {
+  const hexRegex = /#([0-9A-Fa-f]{6})\b/g;
+  const matches = html.match(hexRegex);
+
+  if (matches) {
+    matches.forEach(hex => {
+      const normalized = hex.toUpperCase();
+      // Filter out black, white, and very common grays roughly
+      if (['#FFFFFF', '#000000', '#F0F0F0', '#E5E5E5'].includes(normalized)) return;
+      colors.set(normalized, (colors.get(normalized) || 0) + 1);
+    });
+  }
+};
+
+const extractFonts = (html: string, fonts: Set<string>) => {
+    const fontRegex = /font-family:\s*([^;"]+)/gi;
+    let match;
+    while ((match = fontRegex.exec(html)) !== null) {
+        const family = match[1].split(',')[0].trim().replace(/['"]/g, '');
+        if (family && !['inherit', 'initial', 'sans-serif', 'serif', 'monospace'].includes(family.toLowerCase())) {
+            fonts.add(family);
+        }
+    }
+};
+
 export async function POST(req: NextRequest) {
   let payload: { url?: string; additionalUrl?: string } | null = null;
   try {
@@ -564,8 +642,12 @@ export async function POST(req: NextRequest) {
     const pageUrls = await getPageUrls(normalizedUrl, additionalUrl);
     const candidates = new Map<string, Candidate>();
     const socialLinks = new Map<string, SocialLink>();
+    const colorCounts = new Map<string, number>();
+    const foundFonts = new Set<string>();
+
     let bestText = "";
     let bestTitle = "";
+    let bestDescription = "";
     let bestTextScore = -1;
     const allBenefits = new Set<string>();
     let bestHrContact: string | null = null;
@@ -574,9 +656,31 @@ export async function POST(req: NextRequest) {
       const html = await fetchText(pageUrl);
       if (!html) continue;
 
-      if (!bestTitle) {
-        const $ = cheerio.load(html);
-        bestTitle = $('title').text().trim();
+      const $ = cheerio.load(html);
+
+      // --- Enhanced Title Extraction ---
+      const ogSiteName = $('meta[property="og:site_name"]').attr('content');
+      const appName = $('meta[name="application-name"]').attr('content');
+      const ogTitle = $('meta[property="og:title"]').attr('content');
+      const docTitle = $('title').text().trim();
+
+      if (!bestTitle || ogSiteName || appName) {
+        if (ogSiteName) {
+            bestTitle = cleanTitle(ogSiteName);
+        } else if (appName) {
+            bestTitle = cleanTitle(appName);
+        } else if (!bestTitle) {
+            const rawTitle = ogTitle || docTitle;
+            bestTitle = cleanTitle(rawTitle);
+        }
+      }
+
+      // --- Enhanced Description Extraction ---
+      if (!bestDescription) {
+        const desc = extractMetaDescription(html);
+        if (desc && desc.length > 10) {
+            bestDescription = desc;
+        }
       }
 
       // Images
@@ -598,22 +702,21 @@ export async function POST(req: NextRequest) {
         if (contact) bestHrContact = contact;
       }
 
-      // Best Text scoring (prioritize "Career" pages)
+      // Style Extraction
+      extractColors(html, colorCounts);
+      extractFonts(html, foundFonts);
+
+      // Best Text scoring
       const pageScore = scorePageUrl(pageUrl);
       if (pageScore > bestTextScore) {
           bestText = cleanText;
           bestTextScore = pageScore;
       }
 
-      // If we are scraping the additional URL, we should definitely consider its text as well
-      // Maybe append it if it's not the best?
-      // Actually, if additional URL is provided, it's likely very relevant.
-      // If the additional URL is processed, let's treat it as high value.
+      // If we are scraping the additional URL
       if (additionalUrl && pageUrl.includes(new URL(additionalUrl).pathname)) {
-          // If the additional URL text is long enough, it might be better than homepage
           if (cleanText.length > 500) {
-             // If we already have a best text, maybe append this one?
-             // Or just let the score decide (additional URL usually has good keywords)
+             // Keep bestText logic as is
           }
       }
 
@@ -622,8 +725,24 @@ export async function POST(req: NextRequest) {
       if (candidates.size >= MAX_CANDIDATES && hasRequired && socialLinks.size > 0 && allBenefits.size > 0) break;
     }
 
-    // Limit text size to avoid payload issues
+    // Limit text size
     if (bestText.length > 50000) bestText = bestText.substring(0, 50000);
+
+    // Process Colors
+    const sortedColors = Array.from(colorCounts.entries())
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 5)
+        .map(([hex]) => ({
+            hex,
+            type: 'accent', // scraped colors are guessed
+            brightness: getBrightness(hex)
+        }));
+
+    // Process Fonts
+    const sortedFonts = Array.from(foundFonts).slice(0, 3).map(name => ({
+        name,
+        type: 'primary'
+    }));
 
     const selected = selectImages(Array.from(candidates.values()));
     return NextResponse.json({
@@ -631,9 +750,12 @@ export async function POST(req: NextRequest) {
         logos: selected.logos,
         text: bestText,
         title: bestTitle,
+        description: bestDescription,
         links: Array.from(socialLinks.values()),
         benefits: Array.from(allBenefits),
-        hrContact: bestHrContact
+        hrContact: bestHrContact,
+        colors: sortedColors,
+        fonts: sortedFonts
     });
   } catch (error) {
     console.error('Scraping error:', error);
@@ -642,9 +764,12 @@ export async function POST(req: NextRequest) {
         logos: [],
         text: "",
         title: "",
+        description: "",
         links: [],
         benefits: [],
         hrContact: null,
+        colors: [],
+        fonts: [],
         error: "Failed to scrape site"
     }, { status: 500 });
   }
