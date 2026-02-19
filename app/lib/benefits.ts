@@ -23,3 +23,30 @@ export const BENEFITS_LIST = [
   "barrierefrei",
   "Hunde geduldet"
 ];
+
+// Mapping from keywords (found in text) to canonical Benefit strings (from BENEFITS_LIST)
+export const BENEFIT_KEYWORDS: Record<string, string> = {
+  "kantine": "Kantine",
+  "fortbildung": "Fortbildungen",
+  "flexible": "flexible Arbeitszeiten",
+  "fahrtkosten": "Fahrtkostenerstattung",
+  "firmenwagen": "Firmenwagen",
+  "essenszulage": "Essenszulage",
+  "kinderbetreuung": "Kinderbetreuung",
+  "homeoffice": "Homeoffice",
+  "event": "Mitarbeiter Events",
+  "arbeitskleidung": "Arbeitskleidung wird gestellt",
+  "ausbildung": "bezahlte Ausbildungsmöglichkeiten",
+  "mitarbeiterbeteiligung": "Mitarbeiterbeteiligung",
+  "handy": "Mitarbeiterhandy",
+  "rabatt": "Mitarbeiterrabatte",
+  "internet": "Private Internetnutzung erlaubt",
+  "parkplatz": "Parkplatz",
+  "altersvorsorge": "betriebliche Altersvorsorge",
+  "gesundheit": "Gesundheitsmaßnahmen",
+  "betriebsarzt": "Betriebsarzt",
+  "coaching": "Coaching",
+  "verkehrsanbindung": "gute Verkehrsanbindung",
+  "barrierefrei": "barrierefrei",
+  "hund": "Hunde geduldet"
+};

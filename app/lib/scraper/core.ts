@@ -1,6 +1,6 @@
 import * as cheerio from 'cheerio';
 import pLimit from 'p-limit';
-import { BENEFITS_LIST } from '../benefits';
+import { BENEFITS_LIST, BENEFIT_KEYWORDS } from '../benefits';
 import { safeFetch } from './safeFetch';
 import { normalizeUrl } from '../entity/resolution';
 
@@ -544,11 +544,21 @@ const extractSocialLinks = ($: cheerio.CheerioAPI, links: Map<string, SocialLink
 const extractBenefits = (text: string) => {
   const lowerText = text.toLowerCase();
   const found = new Set<string>();
+
+  // 1. Exact match against canonical list (optional but safe)
   for (const benefit of BENEFITS_LIST) {
     if (lowerText.includes(benefit.toLowerCase())) {
       found.add(benefit);
     }
   }
+
+  // 2. Keyword mapping (fuzzy match)
+  for (const [keyword, benefit] of Object.entries(BENEFIT_KEYWORDS)) {
+    if (lowerText.includes(keyword)) {
+      found.add(benefit);
+    }
+  }
+
   return Array.from(found);
 };
 
